@@ -109,3 +109,4 @@ export const categoriesApi = {
 };
 
 export default api;
+

@@ -85,3 +85,4 @@ export interface LocationInfo {
   state: string;
   country: string;
 }
+
