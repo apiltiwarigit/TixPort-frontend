@@ -56,10 +56,17 @@ export interface Ticket {
 
 // API Response Types
 export interface EventsResponse {
-  events: Event[];
-  current_page: number;
-  per_page: number;
-  total_entries: number;
+  success: boolean;
+  data: {
+    events: Event[];
+    pagination: {
+      current_page: number;
+      per_page: number;
+      total_entries: number;
+      total_pages: number;
+    };
+    filters: any;
+  };
 }
 
 export interface TicketsResponse {

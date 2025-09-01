@@ -1,6 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
+import { eventsApi } from '@/lib/api';
 
 interface Event {
   id: number;
@@ -13,7 +15,9 @@ interface Event {
 
 interface EventsGridProps {
   title: string;
-  events: Event[];
+  category?: string;
+  city?: string;
+  state?: string;
   moreButtonText: string;
 }
 
@@ -31,14 +35,104 @@ function EventCard({ event }: { event: Event }) {
   );
 }
 
-export default function EventsGrid({ title, events, moreButtonText }: EventsGridProps) {
+export default function EventsGrid({ title, category, city, state, moreButtonText }: EventsGridProps) {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const filters: any = {};
+        if (category) filters.category = category;
+        if (city) filters.city = city;
+        if (state) filters.state = state;
+        
+        const response = await eventsApi.getEvents(filters, 1, 5);
+        
+        // Transform the API response to match our Event interface
+        const transformedEvents: Event[] = response.data.events.map((event: any) => ({
+          id: event.id,
+          name: event.name,
+          date: new Date(event.event_date || event.date_time_local).toLocaleDateString('en-US', { 
+            weekday: 'short', 
+            month: 'short', 
+            day: 'numeric' 
+          }).toUpperCase(),
+          time: new Date(event.event_date || event.date_time_local).toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit',
+            hour12: true 
+          }),
+          venue: event.venue?.name || 'Unknown Venue',
+          location: `${event.venue?.city || 'Unknown City'}, ${event.venue?.state || 'Unknown State'}`
+        }));
+        
+        setEvents(transformedEvents);
+      } catch (err: any) {
+        console.error('Error fetching events:', err);
+        const errorMessage = err?.response?.data?.message || err?.message || 'Failed to load events';
+        setError(errorMessage);
+        // Fallback to empty array if API fails
+        setEvents([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, [category, city, state]);
+
+  if (loading) {
+    return (
+      <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+        <h3 className="text-white font-bold text-lg mb-4">{title}</h3>
+        <div className="space-y-3 mb-4">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="p-3 bg-gray-700 border border-gray-600 rounded-lg animate-pulse">
+              <div className="h-4 bg-gray-600 rounded mb-2"></div>
+              <div className="h-3 bg-gray-600 rounded w-3/4"></div>
+            </div>
+          ))}
+        </div>
+        <button className="btn-primary w-full text-sm opacity-50 cursor-not-allowed">
+          {moreButtonText}
+        </button>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+        <h3 className="text-white font-bold text-lg mb-4">{title}</h3>
+        <div className="text-red-400 text-sm mb-4 p-3 bg-red-900/20 border border-red-800 rounded">
+          <div className="font-medium mb-1">Unable to load events</div>
+          <div className="text-xs text-red-300">{error}</div>
+        </div>
+        <button className="btn-primary w-full text-sm opacity-50 cursor-not-allowed">
+          {moreButtonText}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
       <h3 className="text-white font-bold text-lg mb-4">{title}</h3>
       <div className="space-y-3 mb-4">
-        {events.map((event) => (
-          <EventCard key={event.id} event={event} />
-        ))}
+        {events.length > 0 ? (
+          events.map((event) => (
+            <EventCard key={event.id} event={event} />
+          ))
+        ) : (
+          <div className="text-gray-400 text-sm text-center py-4">
+            No events found
+          </div>
+        )}
       </div>
       <button className="btn-primary w-full text-sm">
         {moreButtonText}
@@ -47,132 +141,4 @@ export default function EventsGrid({ title, events, moreButtonText }: EventsGrid
   );
 }
 
-// Sample data for the three categories
-export const concertsEvents: Event[] = [
-  {
-    id: 1,
-    name: "Le Sserafim",
-    date: "WED SEP 3",
-    time: "7:30 PM",
-    venue: "Prudential Center",
-    location: "Newark, NJ"
-  },
-  {
-    id: 2,
-    name: "Poppy with Mspaint",
-    date: "THU SEP 4",
-    time: "8:00 PM",
-    venue: "Wellmont Theatre",
-    location: "Montclair, NJ"
-  },
-  {
-    id: 3,
-    name: "Eden Munoz",
-    date: "FRI SEP 5",
-    time: "8:00 PM",
-    venue: "Ritz Theatre",
-    location: "NJ Elizabeth, NJ"
-  },
-  {
-    id: 4,
-    name: "Rilo Kiley",
-    date: "FRI SEP 5",
-    time: "8:00 PM",
-    venue: "The Rooftop at Pier 17",
-    location: "New York, NY"
-  },
-  {
-    id: 5,
-    name: "The Waterboys",
-    date: "FRI SEP 5",
-    time: "8:00 PM",
-    venue: "Hackensack Meridian Health Theatre at the Count Basie Center for the Arts",
-    location: "Red Bank, NJ"
-  }
-];
 
-export const sportsEvents: Event[] = [
-  {
-    id: 1,
-    name: "Hagerstown Flying Boxcars at Staten Island FerryHawks",
-    date: "TUE SEP 2",
-    time: "6:30 PM",
-    venue: "SIUH Community Park",
-    location: "Staten Island, NY"
-  },
-  {
-    id: 2,
-    name: "New Hampshire Fisher Cats at Somerset Patriots",
-    date: "TUE SEP 2",
-    time: "6:35 PM",
-    venue: "TD Bank Ballpark",
-    location: "Bridgewater, NJ"
-  },
-  {
-    id: 3,
-    name: "New Hampshire Fisher Cats at Somerset Patriots",
-    date: "WED SEP 3",
-    time: "6:35 PM",
-    venue: "TD Bank Ballpark",
-    location: "Bridgewater, NJ"
-  },
-  {
-    id: 4,
-    name: "Spokane Zephyr FC at Brooklyn FC",
-    date: "WED SEP 3",
-    time: "7:00 PM",
-    venue: "Maimonides Park",
-    location: "Brooklyn, NY"
-  },
-  {
-    id: 5,
-    name: "Hagerstown Flying Boxcars at Staten Island FerryHawks",
-    date: "THU SEP 4",
-    time: "4:00 PM",
-    venue: "SIUH Community Park",
-    location: "Staten Island, NY"
-  }
-];
-
-export const theatreEvents: Event[] = [
-  {
-    id: 1,
-    name: "The Play That Goes Wrong",
-    date: "MON SEP 1",
-    time: "7:00 PM",
-    venue: "New World Stages: Stage 4",
-    location: "New York, NY"
-  },
-  {
-    id: 2,
-    name: "The Play That Goes Wrong",
-    date: "WED SEP 3",
-    time: "7:00 PM",
-    venue: "New World Stages: Stage 4",
-    location: "New York, NY"
-  },
-  {
-    id: 3,
-    name: "The Play That Goes Wrong",
-    date: "THU SEP 4",
-    time: "2:00 PM",
-    venue: "New World Stages: Stage 4",
-    location: "New York, NY"
-  },
-  {
-    id: 4,
-    name: "The Play That Goes Wrong",
-    date: "THU SEP 4",
-    time: "7:00 PM",
-    venue: "New World Stages: Stage 4",
-    location: "New York, NY"
-  },
-  {
-    id: 5,
-    name: "The Play That Goes Wrong",
-    date: "FRI SEP 5",
-    time: "7:00 PM",
-    venue: "New World Stages: Stage 4",
-    location: "New York, NY"
-  }
-];

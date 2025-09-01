@@ -2,7 +2,7 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import HeroSection from '@/components/HeroSection';
 import GuaranteeSection from '@/components/GuaranteeSection';
-import EventsGrid, { concertsEvents, sportsEvents, theatreEvents } from '@/components/EventsGrid';
+import EventsGrid from '@/components/EventsGrid';
 import Footer from '@/components/Footer';
 
 export default function Home() {
@@ -43,17 +43,23 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <EventsGrid
               title="Local Concerts Events"
-              events={concertsEvents}
+              category="Concerts"
+              city="Edison"
+              state="NJ"
               moreButtonText="More Concerts Events"
             />
             <EventsGrid
               title="Local Sports Events"
-              events={sportsEvents}
+              category="Sports"
+              city="Edison"
+              state="NJ"
               moreButtonText="More Sports Events"
             />
             <EventsGrid
               title="Local Theatre Events"
-              events={theatreEvents}
+              category="Theater"
+              city="Edison"
+              state="NJ"
               moreButtonText="More Theatre Events"
             />
           </div>
