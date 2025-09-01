@@ -10,37 +10,34 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
       <Header />
       
-      <div className="flex">
-        {/* Sidebar */}
-        <Sidebar />
+      <div className="flex flex-col lg:flex-row">
+        {/* Sidebar - Hidden on mobile, shown on desktop */}
+        <div className="hidden lg:block">
+          <Sidebar />
+        </div>
         
         {/* Main Content */}
-        <main className="flex-1 p-8">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">
           {/* Hero Section */}
           <HeroSection />
           
-          {/* Hero and Guarantee Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-            <div className="lg:col-span-2">
-              <HeroSection />
-            </div>
-            <div>
-              <GuaranteeSection />
-            </div>
+          {/* Guarantee Section */}
+          <div className="mb-6 sm:mb-8">
+            <GuaranteeSection />
           </div>
 
           {/* Events Near Location */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">Events Near Edison, NJ</h2>
-              <button className="text-green-500 hover:text-green-400 text-sm font-medium">
+          <div className="mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-2 sm:gap-0">
+              <h2 className="text-xl sm:text-2xl font-bold text-white">Events Near Edison, NJ</h2>
+              <button className="text-green-500 hover:text-green-400 text-sm font-medium self-start sm:self-auto">
                 (change location)
               </button>
             </div>
           </div>
 
           {/* Events Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             <EventsGrid
               title="Local Concerts Events"
               category="Concerts"

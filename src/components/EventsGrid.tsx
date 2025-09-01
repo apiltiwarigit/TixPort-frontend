@@ -23,14 +23,14 @@ interface EventsGridProps {
 
 function EventCard({ event }: { event: Event }) {
   return (
-    <div className="flex items-center justify-between p-3 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-750 transition-colors cursor-pointer group">
-      <div className="flex-1">
-        <div className="text-white font-medium text-sm mb-1">{event.name}</div>
-        <div className="text-gray-400 text-xs">
+    <div className="flex items-center justify-between p-2 sm:p-3 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-750 transition-all duration-300 cursor-pointer group transform hover:scale-[1.02] hover:shadow-lg animate-fade-in-up">
+      <div className="flex-1 min-w-0">
+        <div className="text-white font-medium text-xs sm:text-sm mb-1 truncate group-hover:text-green-400 transition-colors duration-300">{event.name}</div>
+        <div className="text-gray-400 text-xs truncate group-hover:text-gray-300 transition-colors duration-300">
           {event.date} | {event.time} | {event.venue} - {event.location}
         </div>
       </div>
-      <ChevronRightIcon className="h-4 w-4 text-gray-400 group-hover:text-white transition-colors" />
+      <ChevronRightIcon className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 group-hover:text-white transition-all duration-300 flex-shrink-0 ml-2 transform group-hover:translate-x-1" />
     </div>
   );
 }
@@ -88,17 +88,17 @@ export default function EventsGrid({ title, category, city, state, moreButtonTex
 
   if (loading) {
     return (
-      <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-        <h3 className="text-white font-bold text-lg mb-4">{title}</h3>
-        <div className="space-y-3 mb-4">
+      <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 sm:p-6">
+        <h3 className="text-white font-bold text-base sm:text-lg mb-3 sm:mb-4">{title}</h3>
+        <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="p-3 bg-gray-700 border border-gray-600 rounded-lg animate-pulse">
-              <div className="h-4 bg-gray-600 rounded mb-2"></div>
-              <div className="h-3 bg-gray-600 rounded w-3/4"></div>
+            <div key={i} className="p-2 sm:p-3 bg-gray-700 border border-gray-600 rounded-lg animate-pulse">
+              <div className="h-3 sm:h-4 bg-gray-600 rounded mb-1 sm:mb-2"></div>
+              <div className="h-2 sm:h-3 bg-gray-600 rounded w-3/4"></div>
             </div>
           ))}
         </div>
-        <button className="btn-primary w-full text-sm opacity-50 cursor-not-allowed">
+        <button className="btn-primary w-full text-xs sm:text-sm opacity-50 cursor-not-allowed">
           {moreButtonText}
         </button>
       </div>
@@ -107,13 +107,13 @@ export default function EventsGrid({ title, category, city, state, moreButtonTex
 
   if (error) {
     return (
-      <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-        <h3 className="text-white font-bold text-lg mb-4">{title}</h3>
-        <div className="text-red-400 text-sm mb-4 p-3 bg-red-900/20 border border-red-800 rounded">
+      <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 sm:p-6">
+        <h3 className="text-white font-bold text-base sm:text-lg mb-3 sm:mb-4">{title}</h3>
+        <div className="text-red-400 text-xs sm:text-sm mb-3 sm:mb-4 p-2 sm:p-3 bg-red-900/20 border border-red-800 rounded">
           <div className="font-medium mb-1">Unable to load events</div>
           <div className="text-xs text-red-300">{error}</div>
         </div>
-        <button className="btn-primary w-full text-sm opacity-50 cursor-not-allowed">
+        <button className="btn-primary w-full text-xs sm:text-sm opacity-50 cursor-not-allowed">
           {moreButtonText}
         </button>
       </div>
@@ -121,20 +121,22 @@ export default function EventsGrid({ title, category, city, state, moreButtonTex
   }
 
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-      <h3 className="text-white font-bold text-lg mb-4">{title}</h3>
-      <div className="space-y-3 mb-4">
+    <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 sm:p-6 transform transition-all duration-300 hover:shadow-xl hover:scale-[1.02] animate-fade-in-up">
+      <h3 className="text-white font-bold text-base sm:text-lg mb-3 sm:mb-4">{title}</h3>
+      <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
         {events.length > 0 ? (
-          events.map((event) => (
-            <EventCard key={event.id} event={event} />
+          events.map((event, index) => (
+            <div key={event.id} style={{ animationDelay: `${index * 0.1}s` }}>
+              <EventCard event={event} />
+            </div>
           ))
         ) : (
-          <div className="text-gray-400 text-sm text-center py-4">
+          <div className="text-gray-400 text-xs sm:text-sm text-center py-3 sm:py-4 animate-fade-in">
             No events found
           </div>
         )}
       </div>
-      <button className="btn-primary w-full text-sm">
+      <button className="btn-primary w-full text-xs sm:text-sm transform transition-all duration-300 hover:scale-105 hover:shadow-lg">
         {moreButtonText}
       </button>
     </div>
