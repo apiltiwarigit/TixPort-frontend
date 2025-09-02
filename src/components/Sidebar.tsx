@@ -1,15 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import { 
-  GlobeAltIcon, 
-  UserIcon, 
+import {
+  GlobeAltIcon,
+  UserIcon,
   ShoppingCartIcon,
   PhoneIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  MapPinIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
+import { useLocation } from '@/contexts/LocationContext';
 
 export default function Sidebar() {
+  const { location, loading, error, formatLocation } = useLocation();
+
   return (
     <div className="w-64 bg-gray-800 border-r border-gray-700 min-h-screen p-6">
       {/* Location Section */}
@@ -20,10 +25,28 @@ export default function Sidebar() {
         </h3>
         <div className="mb-4">
           <h4 className="text-gray-300 text-xs font-medium mb-2">YOUR LOCATION</h4>
-          <div className="flex items-center text-white text-sm">
-            <GlobeAltIcon className="h-4 w-4 mr-2 text-gray-400" />
-            <span>Edison, NJ</span>
-          </div>
+
+          {loading ? (
+            <div className="flex items-center text-gray-400 text-sm">
+              <div className="animate-spin rounded-full h-3 w-3 border border-gray-400 border-t-transparent mr-2"></div>
+              <span>Detecting...</span>
+            </div>
+          ) : location ? (
+            <div className="flex items-center text-white text-sm">
+              <MapPinIcon className="h-4 w-4 mr-2 text-green-500" />
+              <span>{formatLocation()}</span>
+            </div>
+          ) : error ? (
+            <div className="flex items-center text-yellow-400 text-sm">
+              <ExclamationTriangleIcon className="h-4 w-4 mr-2" />
+              <span>Using default</span>
+            </div>
+          ) : (
+            <div className="flex items-center text-gray-400 text-sm">
+              <GlobeAltIcon className="h-4 w-4 mr-2" />
+              <span>Unknown</span>
+            </div>
+          )}
         </div>
       </div>
 

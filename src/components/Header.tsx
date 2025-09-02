@@ -2,21 +2,25 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { 
-  MagnifyingGlassIcon, 
-  Bars3Icon, 
+import {
+  MagnifyingGlassIcon,
+  Bars3Icon,
   XMarkIcon,
   PhoneIcon,
   EnvelopeIcon,
   GlobeAltIcon,
   UserIcon,
   ShoppingCartIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  MapPinIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
+import { useLocation } from '@/contexts/LocationContext';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const { location, loading, error, formatLocation } = useLocation();
 
   return (
     <>
@@ -24,14 +28,8 @@ export default function Header() {
       <div className="hidden sm:block bg-gray-900 border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-10 text-sm">
-            {/* Left - Logo */}
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 bg-purple-600 rounded flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">T</span>
-                </div>
-                <span className="text-white font-bold">TIXPORT</span>
-              </div>
+            {/* Left - Disclaimer */}
+            <div className="flex items-center">
               <div className="hidden md:block text-gray-300 text-xs">
                 We are a resale marketplace. Prices may be above or below face value.
               </div>
@@ -75,6 +73,16 @@ export default function Header() {
       <header className="bg-gray-800 border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14 sm:h-16">
+            {/* Logo - Hidden on mobile, visible on desktop */}
+            <div className="hidden lg:flex items-center">
+              <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+                <div className="w-8 h-8 bg-purple-600 rounded flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">T</span>
+                </div>
+                <span className="text-white font-bold text-lg">TIXPORT</span>
+              </Link>
+            </div>
+
             {/* Mobile menu button */}
             <div className="lg:hidden">
               <button
@@ -142,6 +150,16 @@ export default function Header() {
       {isMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50 bg-black bg-opacity-50 animate-fade-in" onClick={() => setIsMenuOpen(false)}>
           <div className="fixed left-0 top-0 h-full w-64 bg-gray-800 border-r border-gray-700 p-6 overflow-y-auto transform transition-transform duration-300 ease-in-out animate-slide-in-left" onClick={(e) => e.stopPropagation()}>
+            {/* Mobile Logo */}
+            <div className="mb-6">
+              <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity" onClick={() => setIsMenuOpen(false)}>
+                <div className="w-8 h-8 bg-purple-600 rounded flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">T</span>
+                </div>
+                <span className="text-white font-bold text-lg">TIXPORT</span>
+              </Link>
+            </div>
+
             {/* Mobile Menu Content - Same as Sidebar */}
             <div className="mb-8">
               <h3 className="text-white font-semibold text-sm mb-4 flex items-center">
@@ -150,10 +168,28 @@ export default function Header() {
               </h3>
               <div className="mb-4">
                 <h4 className="text-gray-300 text-xs font-medium mb-2">YOUR LOCATION</h4>
-                <div className="flex items-center text-white text-sm">
-                  <GlobeAltIcon className="h-4 w-4 mr-2 text-gray-400" />
-                  <span>Edison, NJ</span>
-                </div>
+
+                {loading ? (
+                  <div className="flex items-center text-gray-400 text-sm">
+                    <div className="animate-spin rounded-full h-3 w-3 border border-gray-400 border-t-transparent mr-2"></div>
+                    <span>Detecting...</span>
+                  </div>
+                ) : location ? (
+                  <div className="flex items-center text-white text-sm">
+                    <MapPinIcon className="h-4 w-4 mr-2 text-green-500" />
+                    <span>{formatLocation()}</span>
+                  </div>
+                ) : error ? (
+                  <div className="flex items-center text-yellow-400 text-sm">
+                    <ExclamationTriangleIcon className="h-4 w-4 mr-2" />
+                    <span>Using default</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center text-gray-400 text-sm">
+                    <GlobeAltIcon className="h-4 w-4 mr-2" />
+                    <span>Unknown</span>
+                  </div>
+                )}
               </div>
             </div>
 

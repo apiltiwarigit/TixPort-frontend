@@ -34,15 +34,20 @@ export function PageContainer({
         </div>
       )}
 
-      <div className={`flex flex-col lg:flex-row ${containerClasses} p-4 sm:p-6 lg:p-8 ${className}`}>
+      {/* Main layout container - matches root page structure */}
+      <div className="flex flex-col lg:flex-row">
+        {/* Sidebar positioned at the very left edge - outside container constraints */}
         {showSidebar && sidebar && (
-          <div className="hidden lg:block mb-6 lg:mb-0 lg:mr-8">
+          <div className="hidden lg:block">
             {sidebar}
           </div>
         )}
 
-        <main className={`flex-1 ${showSidebar ? 'lg:ml-0' : ''}`}>
-          {children}
+        {/* Main content area with container constraints */}
+        <main className={`flex-1 ${showSidebar ? '' : ''}`}>
+          <div className={`${containerClasses} p-4 sm:p-6 lg:p-8 ${className}`}>
+            {children}
+          </div>
         </main>
       </div>
 
