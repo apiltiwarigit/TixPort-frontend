@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
 import { eventsApi } from '@/lib/api';
+import Link from 'next/link';
 
 interface Event {
   id: number;
@@ -23,15 +24,17 @@ interface EventsGridProps {
 
 function EventCard({ event }: { event: Event }) {
   return (
-    <div className="flex items-center justify-between p-2 sm:p-3 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-750 transition-all duration-300 cursor-pointer group transform hover:scale-[1.02] hover:shadow-lg animate-fade-in-up">
-      <div className="flex-1 min-w-0">
-        <div className="text-white font-medium text-xs sm:text-sm mb-1 truncate group-hover:text-green-400 transition-colors duration-300">{event.name}</div>
-        <div className="text-gray-400 text-xs truncate group-hover:text-gray-300 transition-colors duration-300">
-          {event.date} | {event.time} | {event.venue} - {event.location}
+    <Link href={`/events/${event.id}/buy`}>
+      <div className="flex items-center justify-between p-2 sm:p-3 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-750 transition-all duration-300 cursor-pointer group transform hover:scale-[1.02] hover:shadow-lg animate-fade-in-up">
+        <div className="flex-1 min-w-0">
+          <div className="text-white font-medium text-xs sm:text-sm mb-1 truncate group-hover:text-green-400 transition-colors duration-300">{event.name}</div>
+          <div className="text-gray-400 text-xs truncate group-hover:text-gray-300 transition-colors duration-300">
+            {event.date} | {event.time} | {event.venue} - {event.location}
+          </div>
         </div>
+        <ChevronRightIcon className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 group-hover:text-white transition-all duration-300 flex-shrink-0 ml-2 transform group-hover:translate-x-1" />
       </div>
-      <ChevronRightIcon className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 group-hover:text-white transition-all duration-300 flex-shrink-0 ml-2 transform group-hover:translate-x-1" />
-    </div>
+    </Link>
   );
 }
 
