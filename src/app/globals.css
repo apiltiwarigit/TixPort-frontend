@@ -141,13 +141,18 @@ html {
 
 /* Image loading placeholder */
 .image-placeholder {
-  background: linear-gradient(45deg, #374151 25%, transparent 25%), 
-              linear-gradient(-45deg, #374151 25%, transparent 25%), 
-              linear-gradient(45deg, transparent 75%, #374151 75%), 
-              linear-gradient(-45deg, transparent 75%, #374151 75%);
-  background-size: 20px 20px;
-  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-  animation: shimmer 2s infinite;
+  background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 /* High-quality image filters */

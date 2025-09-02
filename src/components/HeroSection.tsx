@@ -135,7 +135,11 @@ export default function HeroSection() {
           <div className="relative w-full h-full">
             {/* Loading placeholder */}
             {imageLoading && (
-              <div className="absolute inset-0 image-placeholder animate-shimmer"></div>
+              <div className="absolute inset-0 image-placeholder">
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-700/50 to-gray-800/50 flex items-center justify-center">
+                  <div className="w-8 h-8 border-2 border-gray-500 border-t-green-500 rounded-full animate-spin"></div>
+                </div>
+              </div>
             )}
             
             {/* Error fallback */}
@@ -151,7 +155,7 @@ export default function HeroSection() {
                 key={`img-${currentSlide}`}
                 src={featuredEvents[currentSlide].image}
                 alt={featuredEvents[currentSlide].title}
-                className={`w-full h-full object-cover transition-all duration-700 ease-in-out transform group-hover:scale-110 hero-image image-enhanced ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
+                className={`w-full h-full object-cover transition-all duration-700 ease-in-out transform group-hover:scale-110 hero-image image-enhanced ${imageLoading ? 'opacity-0 scale-105' : 'opacity-100 scale-100'}`}
                 loading="eager"
                 decoding="async"
                 sizes="(max-width: 1024px) 0px, 360px"
