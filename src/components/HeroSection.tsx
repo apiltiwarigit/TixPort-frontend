@@ -51,17 +51,17 @@ export default function HeroSection() {
   };
 
   return (
-    <div className="relative bg-gradient-to-r from-gray-800 to-gray-900 rounded-lg overflow-hidden mb-8 h-80 sm:h-96 lg:h-[28rem] group">
+    <div className="relative bg-gradient-to-r from-gray-800 to-gray-900 rounded-lg overflow-hidden mb-6 h-64 sm:h-80 lg:h-[22rem] group">
       <div className="flex h-full">
         {/* Main Content */}
         <div className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col justify-between">
           <div className="max-w-2xl">
             <h1 
               key={currentSlide}
-              className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold text-white mb-3 sm:mb-4 leading-tight overflow-hidden animate-fade-in-up" 
+              className="text-lg sm:text-2xl lg:text-3xl font-bold text-white mb-2 sm:mb-3 leading-tight overflow-hidden animate-fade-in-up" 
               style={{
                 display: '-webkit-box',
-                WebkitLineClamp: 3,
+                WebkitLineClamp: 2,
                 WebkitBoxOrient: 'vertical',
                 animationDelay: '0.1s'
               }}
@@ -70,23 +70,37 @@ export default function HeroSection() {
             </h1>
             <p 
               key={`desc-${currentSlide}`}
-              className="text-gray-300 text-sm sm:text-base lg:text-lg mb-4 sm:mb-6 leading-relaxed overflow-hidden animate-fade-in-up" 
+              className="text-gray-300 text-xs sm:text-sm lg:text-base mb-3 sm:mb-4 leading-relaxed overflow-hidden animate-fade-in-up" 
               style={{
                 display: '-webkit-box',
-                WebkitLineClamp: 3,
+                WebkitLineClamp: 2,
                 WebkitBoxOrient: 'vertical',
                 animationDelay: '0.2s'
               }}
             >
               {featuredEvents[currentSlide].description}
             </p>
-            <button className="btn-primary text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3 transform transition-all duration-300 hover:scale-105 hover:shadow-lg animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-              Read More
-            </button>
+
+            {/* Tags / Chips */}
+            <div className="flex flex-wrap items-center gap-2 mb-3 animate-fade-in-up" style={{ animationDelay: '0.25s' }}>
+              <span className="px-2 py-1 text-[10px] sm:text-xs rounded-full bg-green-500/15 text-green-400 border border-green-600/30">Featured</span>
+              <span className="px-2 py-1 text-[10px] sm:text-xs rounded-full bg-blue-500/15 text-blue-400 border border-blue-600/30">Trending</span>
+              <span className="px-2 py-1 text-[10px] sm:text-xs rounded-full bg-gray-700 text-gray-200 border border-gray-600">Limited Seats</span>
+            </div>
+
+            {/* CTAs */}
+            <div className="flex items-center gap-2 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+              <button className="btn-primary text-xs sm:text-sm px-4 py-2 transform transition-all duration-300 hover:scale-105 hover:shadow-lg">
+                View Tickets
+              </button>
+              <button className="text-xs sm:text-sm px-4 py-2 rounded-md border border-gray-600 text-white hover:bg-gray-700 transition-colors">
+                View Dates
+              </button>
+            </div>
           </div>
 
           {/* Navigation Controls */}
-          <div className="flex items-center justify-between mt-4 sm:mt-6 lg:mt-8 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+          <div className="flex items-center justify-between mt-3 sm:mt-5 lg:mt-6 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
             <div className="flex space-x-2">
               {featuredEvents.map((_, index) => (
                 <button
@@ -116,7 +130,7 @@ export default function HeroSection() {
         </div>
 
         {/* Image */}
-        <div className="hidden lg:block w-80 xl:w-96 h-full overflow-hidden relative">
+        <div className="hidden lg:block w-72 xl:w-80 h-full overflow-hidden relative">
           {/* Image with enhanced styling */}
           <div className="relative w-full h-full">
             {/* Loading placeholder */}
@@ -140,7 +154,7 @@ export default function HeroSection() {
                 className={`w-full h-full object-cover transition-all duration-700 ease-in-out transform group-hover:scale-110 hero-image image-enhanced ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
                 loading="eager"
                 decoding="async"
-                sizes="(max-width: 1024px) 0px, 400px"
+                sizes="(max-width: 1024px) 0px, 360px"
                 onLoad={handleImageLoad}
                 onError={handleImageError}
               />
@@ -148,9 +162,6 @@ export default function HeroSection() {
             
             {/* Gradient overlay for better text readability */}
             <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-gray-900/20 group-hover:to-gray-900/10 transition-all duration-500"></div>
-            
-            {/* Subtle border and shadow */}
-            <div className="absolute inset-0 border border-gray-600/30 rounded-r-lg group-hover:border-gray-500/50 transition-all duration-500"></div>
             
             {/* Image quality indicator */}
             {!imageError && (
