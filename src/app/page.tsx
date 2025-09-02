@@ -4,6 +4,8 @@ import HeroSection from '@/components/HeroSection';
 import GuaranteeSection from '@/components/GuaranteeSection';
 import EventsGrid from '@/components/EventsGrid';
 import Footer from '@/components/Footer';
+import LocationDisplay from '@/components/LocationDisplay';
+import LocationDebug from '@/components/LocationDebug';
 
 export default function Home() {
   return (
@@ -26,15 +28,18 @@ export default function Home() {
             <GuaranteeSection />
           </div>
 
-          {/* Events Near Location */}
-          <div className="mb-6 sm:mb-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-2 sm:gap-0">
-              <h2 className="text-xl sm:text-2xl font-bold text-white">Events Near Edison, NJ</h2>
-              <button className="text-green-500 hover:text-green-400 text-sm font-medium self-start sm:self-auto">
-                (change location)
-              </button>
-            </div>
-          </div>
+          {/* Location Debug - Temporary for testing */}
+          <LocationDebug />
+
+                          {/* Events Near Location */}
+                <div className="mb-6 sm:mb-8">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-2 sm:gap-0">
+                    <LocationDisplay 
+                      className="text-xl sm:text-2xl font-bold"
+                      showChangeButton={true}
+                    />
+                  </div>
+                </div>
 
           {/* Events Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
