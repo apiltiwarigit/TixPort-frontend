@@ -33,9 +33,8 @@ export function LocationProvider({ children }: LocationProviderProps) {
     } catch (err) {
       console.error('Failed to fetch location:', err);
       setError('Unable to detect location');
-      // Set default location on error
-      const defaultLocation = locationService.getDefaultLocation();
-      setLocation(defaultLocation);
+      // Don't set any default location - let components handle missing location
+      setLocation(null);
     } finally {
       setLoading(false);
     }

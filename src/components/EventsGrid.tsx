@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
 import { eventsApi } from '@/lib/api';
 import Link from 'next/link';
+import { EventFilters } from '@/types';
 
 interface Event {
   id: number;
@@ -49,11 +50,22 @@ export default function EventsGrid({ title, category, city, state, moreButtonTex
         setLoading(true);
         setError(null);
         
-        const filters: any = {};
+        // Don't make API call if location is not available
+        if (!city || !state) {
+          console.log('⚠️ [EventsGrid] No location available, skipping API call');
+          return;
+        }
+
+        const filters: EventFilters = {};
         if (category) filters.category = category;
         if (city) filters.city = city;
         if (state) filters.state = state;
-        
+
+        // Debug: Log what EventsGrid is receiving
+        console.log('🎯 [EventsGrid] Props received:', { category, city, state });
+        console.log('📤 [EventsGrid] Filters being sent:', filters);
+        console.log('✅ [EventsGrid] Location filters set:', `${filters.city}, ${filters.state}`);
+
         const response = await eventsApi.getEvents(filters, 1, 5);
         
         // Transform the API response to match our Event interface

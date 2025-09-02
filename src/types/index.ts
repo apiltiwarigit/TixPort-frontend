@@ -80,6 +80,8 @@ export interface TicketsResponse {
 export interface EventFilters {
   category?: string;
   location?: string;
+  city?: string;
+  state?: string;
   dateFrom?: string;
   dateTo?: string;
   minPrice?: number;
