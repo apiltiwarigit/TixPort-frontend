@@ -154,9 +154,98 @@ export default function CategoryPage() {
             <Sidebar />
           </div>
           <main className="flex-1 p-4 sm:p-6 lg:p-8">
-            <div className="flex justify-center items-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
-              <span className="ml-3 text-gray-400 text-lg">Loading events...</span>
+            {/* Category Header Skeleton */}
+            <div className="mb-8">
+              <div
+                className="bg-gradient-to-r from-gray-800 to-gray-900 rounded-lg p-6 sm:p-8 border border-gray-700"
+                style={{
+                  animation: 'twinkle-blur 2s ease-in-out infinite',
+                  filter: 'blur(0.5px)'
+                }}
+              >
+                <div className="flex items-center space-x-4 mb-4">
+                  <div className="bg-gray-700/50 p-3 rounded-full">
+                    <div className="w-8 h-8 bg-gray-600 rounded-full"></div>
+                  </div>
+                  <div>
+                    <div className="h-8 bg-gray-700 rounded mb-2 w-64"></div>
+                    <div className="h-5 bg-gray-700 rounded w-96"></div>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-4 text-sm">
+                  <div className="bg-gray-700/50 px-3 py-2 rounded-lg">
+                    <div className="h-4 bg-gray-600 rounded w-24"></div>
+                  </div>
+                  <div className="bg-gray-700/50 px-3 py-2 rounded-lg">
+                    <div className="h-4 bg-gray-600 rounded w-32"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Events Grid Skeleton */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {[...Array(9)].map((_, i) => (
+                <div
+                  key={i}
+                  className="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden"
+                  style={{
+                    animationDelay: `${i * 0.2}s`,
+                    animation: 'twinkle-blur 2s ease-in-out infinite',
+                    filter: 'blur(1px)'
+                  }}
+                >
+                  <div className="p-6">
+                    {/* Event Title Skeleton */}
+                    <div className="h-6 bg-gray-700 rounded mb-4 w-3/4 animate-pulse"></div>
+
+                    <div className="space-y-3 mb-4">
+                      {/* Date/Time Skeleton */}
+                      <div className="flex items-center">
+                        <div className="w-4 h-4 bg-gray-600 rounded mr-2 animate-pulse"></div>
+                        <div className="h-4 bg-gray-600 rounded w-32 animate-pulse"></div>
+                      </div>
+
+                      {/* Location Skeleton */}
+                      <div className="flex items-center">
+                        <div className="w-4 h-4 bg-gray-600 rounded mr-2 animate-pulse"></div>
+                        <div className="h-4 bg-gray-600 rounded w-40 animate-pulse"></div>
+                      </div>
+
+                      {/* Price Skeleton (sometimes shown) */}
+                      {i % 3 === 0 && (
+                        <div className="flex items-center">
+                          <div className="w-4 h-4 bg-gray-600 rounded mr-2 animate-pulse"></div>
+                          <div className="h-4 bg-gray-600 rounded w-24 animate-pulse"></div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Bottom section */}
+                    <div className="flex justify-between items-center">
+                      <div className="h-3 bg-gray-600 rounded w-16 animate-pulse"></div>
+                      <div className="h-8 bg-gray-700 rounded px-3 py-1 w-20 animate-pulse"></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Pagination Skeleton */}
+            <div
+              className="flex justify-center items-center space-x-2"
+              style={{
+                animation: 'twinkle-blur 2s ease-in-out infinite',
+                filter: 'blur(0.5px)'
+              }}
+            >
+              <div className="h-10 bg-gray-700 rounded px-4 w-20"></div>
+              <div className="flex space-x-1">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-10 w-10 bg-gray-700 rounded"></div>
+                ))}
+              </div>
+              <div className="h-10 bg-gray-700 rounded px-4 w-20"></div>
             </div>
           </main>
         </div>
