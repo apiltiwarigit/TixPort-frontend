@@ -54,12 +54,17 @@ export default function Home() {
 
         {/* Main Content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
-          {/* Hero Section */}
-          <HeroSection />
-          
-          {/* Guarantee Section */}
-          <div className="mb-6 sm:mb-8">
-            <GuaranteeSection />
+          {/* Hero and Guarantee Sections - Side by Side */}
+          <div className="flex flex-col lg:flex-row gap-6 mb-6 sm:mb-8">
+            {/* Hero Section - 60% width */}
+            <div className="w-full lg:w-3/5">
+              <HeroSection />
+            </div>
+
+            {/* Guarantee Section - 40% width */}
+            <div className="w-full lg:w-2/5">
+              <GuaranteeSection />
+            </div>
           </div>
 
 
@@ -67,9 +72,9 @@ export default function Home() {
           {/* Events Near Location */}
           <div className="mb-6 sm:mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-2 sm:gap-0">
-              <LocationDisplay 
+              <LocationDisplay
                 className="text-xl sm:text-2xl font-bold"
-                showChangeButton={true}
+                showChangeButton={false}
               />
             </div>
           </div>
