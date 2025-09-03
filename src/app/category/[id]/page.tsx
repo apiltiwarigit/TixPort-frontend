@@ -124,11 +124,11 @@ export default function CategoryPage() {
       });
 
     } catch (error: any) {
-      console.error('Error loading category data:', error);
+      console.error('Error loading events data:', error);
       setData(prev => ({
         ...prev,
         loading: false,
-        error: error.message || 'Failed to load category data'
+        error: error.message || 'Failed to load events data'
       }));
     }
   };
@@ -156,7 +156,7 @@ export default function CategoryPage() {
           <main className="flex-1 p-4 sm:p-6 lg:p-8">
             <div className="flex justify-center items-center py-20">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
-              <span className="ml-3 text-gray-400 text-lg">Loading category...</span>
+              <span className="ml-3 text-gray-400 text-lg">Loading events...</span>
             </div>
           </main>
         </div>
@@ -184,7 +184,7 @@ export default function CategoryPage() {
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <h3 className="text-white font-semibold mb-2 text-xl">Error Loading Category</h3>
+                <h3 className="text-white font-semibold mb-2 text-xl">Error Loading Events</h3>
                 <p className="text-gray-400">{data.error}</p>
                 <button 
                   onClick={loadCategoryData}
@@ -355,7 +355,10 @@ export default function CategoryPage() {
                 </div>
                 <h3 className="text-white font-semibold mb-2 text-xl">No Events Found</h3>
                 <p className="text-gray-400">
-                  There are currently no events available in the {data.category?.name || 'selected'} category.
+                  {data.category?.name === 'All Events'
+                    ? 'There are currently no events available.'
+                    : `There are currently no events available in the ${data.category?.name || 'selected'} category.`
+                  }
                 </p>
               </div>
             </div>
