@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import {
   GlobeAltIcon,
   UserIcon,
@@ -8,12 +9,178 @@ import {
   PhoneIcon,
   InformationCircleIcon,
   MapPinIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  ChevronDownIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline';
 import { useLocation } from '@/contexts/LocationContext';
+import { categoriesApi } from '@/lib/api';
+
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  parent?: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+  children?: Category[];
+}
 
 export default function Sidebar() {
   const { location, loading, error, formatLocation } = useLocation();
+  // Categories state - will be cached in Supabase later
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      setCategoriesLoading(true);
+      setCategoriesError(null);
+
+      const response = await categoriesApi.getCategories();
+
+      // Transform categories into tree structure
+      const transformedCategories = transformCategoriesToTree(response.data || []);
+      setCategories(transformedCategories);
+    } catch (err: any) {
+      console.error('Error fetching categories:', err);
+      setCategoriesError('Unable to load categories. Categories will be cached in Supabase soon.');
+      setCategories([]); // Clear categories on error
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
+
+  const transformCategoriesToTree = (categories: any[]): Category[] => {
+    const categoryMap = new Map<number, Category>();
+    const rootCategories: Category[] = [];
+
+    // First pass: create all category objects
+    categories.forEach(cat => {
+      const category: Category = {
+        id: cat.id,
+        name: cat.name,
+        slug: cat.slug || cat.name.toLowerCase().replace(/\s+/g, '-'),
+        parent: cat.parent,
+        children: []
+      };
+      categoryMap.set(cat.id, category);
+    });
+
+    // Second pass: build tree structure
+    categories.forEach(cat => {
+      const category = categoryMap.get(cat.id)!;
+      if (cat.parent && cat.parent.id) {
+        // This is a child category
+        const parentCategory = categoryMap.get(cat.parent.id);
+        if (parentCategory) {
+          parentCategory.children!.push(category);
+        }
+      } else {
+        // This is a root category
+        rootCategories.push(category);
+      }
+    });
+
+    return rootCategories;
+  };
+
+  const toggleCategory = (categoryId: number) => {
+    const newExpanded = new Set(expandedCategories);
+    if (newExpanded.has(categoryId)) {
+      newExpanded.delete(categoryId);
+    } else {
+      newExpanded.add(categoryId);
+    }
+    setExpandedCategories(newExpanded);
+  };
+
+  const generateCategoryLink = (category: Category): string => {
+    // Create dynamic links based on category structure
+    if (category.parent) {
+      // Child category - use parent/child structure
+      return `/sports/${category.slug}`;
+    } else {
+      // Root category
+      switch (category.slug) {
+        case 'concerts':
+        case 'music':
+          return '/concerts';
+        case 'sports':
+          return '/sports';
+        case 'theater':
+        case 'theatre':
+          return '/theatre';
+        default:
+          return `/${category.slug}`;
+      }
+    }
+  };
+
+  // Tree Item Component for rendering categories
+  const CategoryTreeItem: React.FC<{
+    category: Category;
+    isExpanded: boolean;
+    onToggle: () => void;
+    generateLink: (category: Category) => string;
+    level?: number;
+  }> = ({ category, isExpanded, onToggle, generateLink, level = 0 }) => {
+    const hasChildren = category.children && category.children.length > 0;
+    const indentClass = level > 0 ? `ml-${level * 4}` : '';
+
+    return (
+      <div>
+        <Link
+          href={generateCategoryLink(category)}
+          className={`flex items-center text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors ${indentClass}`}
+        >
+          {hasChildren ? (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onToggle();
+              }}
+              className="mr-2 focus:outline-none"
+            >
+              {isExpanded ? (
+                <ChevronDownIcon className="h-3 w-3" />
+              ) : (
+                <ChevronRightIcon className="h-3 w-3" />
+              )}
+            </button>
+          ) : (
+            <div className="w-5" /> // Spacer for alignment
+          )}
+          <span className="truncate">{category.name}</span>
+        </Link>
+
+        {/* Render children if expanded */}
+        {hasChildren && isExpanded && (
+          <div>
+            {category.children!.map((childCategory) => (
+              <CategoryTreeItem
+                key={childCategory.id}
+                category={childCategory}
+                isExpanded={expandedCategories.has(childCategory.id)}
+                onToggle={() => toggleCategory(childCategory.id)}
+                generateLink={generateLink}
+                level={level + 1}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="w-64 bg-gray-800 border-r border-gray-700 min-h-screen p-6">
@@ -52,32 +219,51 @@ export default function Sidebar() {
 
       {/* Main Navigation */}
       <div className="mb-8">
-        <nav className="space-y-2">
-          <Link href="/concerts" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors">
-            Concerts
-          </Link>
-          <Link href="/theatre" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors">
-            Theatre
-          </Link>
-          <Link href="/sports" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors">
-            Sports
-          </Link>
-          <Link href="/sports/nfl" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors ml-4">
-            NFL Football
-          </Link>
-          <Link href="/sports/mlb" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors ml-4">
-            MLB Baseball
-          </Link>
-          <Link href="/sports/nba" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors ml-4">
-            NBA Basketball
-          </Link>
-          <Link href="/sports/nhl" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors ml-4">
-            NHL Hockey
-          </Link>
-          <Link href="/sports/mls" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors ml-4">
-            MLS Soccer
-          </Link>
-        </nav>
+        <h3 className="text-white font-semibold text-sm mb-4 flex items-center">
+          <GlobeAltIcon className="h-4 w-4 mr-2" />
+          CATEGORIES
+        </h3>
+
+        {categoriesLoading ? (
+          <div className="space-y-2">
+            <div className="animate-pulse">
+              <div className="h-4 bg-gray-700 rounded w-24 mb-2"></div>
+              <div className="h-4 bg-gray-700 rounded w-20 ml-4 mb-2"></div>
+              <div className="h-4 bg-gray-700 rounded w-20 ml-4 mb-2"></div>
+            </div>
+          </div>
+        ) : categoriesError ? (
+          <div className="bg-red-900/20 border border-red-800 rounded-lg p-3">
+            <div className="flex items-start">
+              <ExclamationTriangleIcon className="h-4 w-4 text-red-400 mt-0.5 mr-2 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-red-400 text-sm font-medium">Categories Unavailable</p>
+                <p className="text-red-300 text-xs mt-1">
+                  {categoriesError}
+                </p>
+                <button
+                  onClick={fetchCategories}
+                  className="mt-2 bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded transition-colors"
+                  disabled={categoriesLoading}
+                >
+                  {categoriesLoading ? 'Retrying...' : 'Retry'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <nav className="space-y-1">
+            {categories.map((category) => (
+              <CategoryTreeItem
+                key={category.id}
+                category={category}
+                isExpanded={expandedCategories.has(category.id)}
+                onToggle={() => toggleCategory(category.id)}
+                generateLink={generateCategoryLink}
+              />
+            ))}
+          </nav>
+        )}
       </div>
 
       {/* Account Section */}
