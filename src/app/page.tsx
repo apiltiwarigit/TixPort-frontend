@@ -94,43 +94,24 @@ export default function Home() {
                 </p>
               </div>
             </div>
-          ) : currentCity && currentState ? (
+          ) : (
+            // Always show events using IP geolocation - no need to wait for location detection
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
               <EventsGrid
                 title={`Local Concerts Events`}
                 category="Concerts"
-                city={currentCity}
-                state={currentState}
                 moreButtonText="More Concerts Events"
               />
               <EventsGrid
                 title={`Local Sports Events`}
                 category="Sports"
-                city={currentCity}
-                state={currentState}
                 moreButtonText="More Sports Events"
               />
               <EventsGrid
                 title={`Local Theatre Events`}
                 category="Theater"
-                city={currentCity}
-                state={currentState}
                 moreButtonText="More Theatre Events"
               />
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <div className="bg-blue-900/20 border border-blue-800 rounded-lg p-6 max-w-md mx-auto">
-                <div className="text-blue-400 mb-2">
-                  <svg className="w-8 h-8 mx-auto" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <h3 className="text-white font-semibold mb-2">Location Required</h3>
-                <p className="text-gray-400 text-sm">
-                  Please allow location access to see events near you, or the system will use your detected location.
-                </p>
-              </div>
             </div>
           )}
         </main>

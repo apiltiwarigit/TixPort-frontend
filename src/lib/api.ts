@@ -40,7 +40,7 @@ export const eventsApi = {
     const params = new URLSearchParams();
     params.append('page', page.toString());
     params.append('limit', limit.toString());
-    
+
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
@@ -50,30 +50,6 @@ export const eventsApi = {
     }
 
     const response = await api.get(`/events?${params.toString()}`);
-    return response.data;
-  },
-
-  // Get single event by ID
-  getEvent: async (eventId: number): Promise<Event> => {
-    const response = await api.get(`/events/${eventId}`);
-    return response.data;
-  },
-
-  // Get events by category
-  getEventsByCategory: async (categoryId: number, page = 1, limit = 20): Promise<EventsResponse> => {
-    const response = await api.get(`/events/category/${categoryId}?page=${page}&limit=${limit}`);
-    return response.data;
-  },
-
-  // Get events by location
-  getEventsByLocation: async (city: string, state?: string, page = 1, limit = 20): Promise<EventsResponse> => {
-    const params = new URLSearchParams();
-    params.append('city', city);
-    if (state) params.append('state', state);
-    params.append('page', page.toString());
-    params.append('limit', limit.toString());
-
-    const response = await api.get(`/events/location?${params.toString()}`);
     return response.data;
   },
 };

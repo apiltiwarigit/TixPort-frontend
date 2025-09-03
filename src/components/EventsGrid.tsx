@@ -50,21 +50,50 @@ export default function EventsGrid({ title, category, city, state, moreButtonTex
         setLoading(true);
         setError(null);
         
-        // Don't make API call if location is not available
-        if (!city || !state) {
-          console.log('⚠️ [EventsGrid] No location available, skipping API call');
-          return;
-        }
+        // Allow API call even without city/state since we use IP geolocation
+        console.log('🌐 [EventsGrid] Making API call with IP geolocation support');
 
         const filters: EventFilters = {};
-        if (category) filters.category = category;
-        if (city) filters.city = city;
-        if (state) filters.state = state;
+        
+        // Use official TicketEvolution API parameters
+        if (category) {
+          // Map category names to TicketEvolution category IDs
+          const categoryMapping: Record<string, string> = {
+            'Concerts': '1',
+            'Music': '1',
+            'Sports': '2',
+            'Baseball': '2',
+            'Basketball': '2', 
+            'Football': '2',
+            'Hockey': '2',
+            'Theater': '3',
+            'Theatre': '3',
+            'Comedy': '4'
+          };
+          filters.category_id = categoryMapping[category] || category;
+        }
+        
+        // Use IP geolocation for location-based results (no city/state needed)
+        // The backend will automatically detect the client's IP and use it for geolocation
+        filters.only_with_available_tickets = true;
+        filters.within = 25; // 25 mile radius
+        
+        // For first page, explicitly request IP geolocation
+        if (!city && !state) {
+          // This will trigger backend IP auto-detection
+          filters.ip = 'auto'; // Special flag to request IP geolocation
+        } else if (city || state) {
+          // If city/state are provided, use them as search query (for backward compatibility)
+          const locationParts = [];
+          if (city) locationParts.push(city);
+          if (state) locationParts.push(state);
+          filters.q = locationParts.join(', ');
+        }
 
-        // Debug: Log what EventsGrid is receiving
+        // Debug: Log what EventsGrid is sending
         console.log('🎯 [EventsGrid] Props received:', { category, city, state });
-        console.log('📤 [EventsGrid] Filters being sent:', filters);
-        console.log('✅ [EventsGrid] Location filters set:', `${filters.city}, ${filters.state}`);
+        console.log('📤 [EventsGrid] Official API filters being sent:', filters);
+        console.log('✅ [EventsGrid] Location search query:', filters.q);
 
         const response = await eventsApi.getEvents(filters, 1, 5);
         
