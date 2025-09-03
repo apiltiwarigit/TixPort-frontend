@@ -215,36 +215,55 @@ export default function CategoryPage() {
           <main className="flex-1 p-4 sm:p-6 lg:p-8">
             {/* Category Header Skeleton */}
             <div className="mb-8">
-              <div
-                className="bg-gradient-to-r from-gray-800 to-gray-900 rounded-lg p-6 sm:p-8 border border-gray-700"
-                style={{
-                  animation: 'twinkle-blur 2s ease-in-out infinite',
-                  filter: 'blur(0.5px)'
-                }}
-              >
+              <div className="bg-gradient-to-r from-gray-800 to-gray-900 rounded-lg p-6 sm:p-8 border border-gray-700">
                 <div className="flex items-center space-x-4 mb-4">
                   <div className="bg-gray-700/50 p-3 rounded-full">
                     <div className="w-8 h-8 bg-gray-600 rounded-full"></div>
                   </div>
                   <div>
-                    <div className="h-8 bg-gray-700 rounded mb-2 w-64"></div>
-                    <div className="h-5 bg-gray-700 rounded w-96"></div>
+                    <div
+                      className="h-8 bg-gray-700 rounded mb-2 w-64"
+                      style={{
+                        animation: 'twinkle-blur 2s ease-in-out infinite',
+                        filter: 'blur(1px)'
+                      }}
+                    ></div>
+                    <div
+                      className="h-5 bg-gray-700 rounded w-96"
+                      style={{
+                        animation: 'twinkle-blur 2s ease-in-out infinite',
+                        filter: 'blur(0.8px)'
+                      }}
+                    ></div>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-3 text-sm">
                   {/* Total Count Skeleton */}
                   <div className="bg-gray-700/50 px-3 py-2 rounded-lg">
-                    <div className="h-4 bg-gray-600 rounded w-16"></div>
+                    <span className="text-gray-400 mr-1">Total:</span>
+                    <div
+                      className="inline-block h-4 bg-gray-600 rounded w-8"
+                      style={{
+                        animation: 'twinkle-blur 2s ease-in-out infinite',
+                        filter: 'blur(1px)'
+                      }}
+                    ></div>
                   </div>
                   {/* Showing Range Skeleton */}
                   <div className="bg-gray-700/50 px-3 py-2 rounded-lg">
-                    <div className="h-4 bg-gray-600 rounded w-20"></div>
+                    <span className="text-gray-400 mr-1">Showing:</span>
+                    <div
+                      className="inline-block h-4 bg-gray-600 rounded w-12"
+                      style={{
+                        animation: 'twinkle-blur 2s ease-in-out infinite',
+                        filter: 'blur(1px)'
+                      }}
+                    ></div>
                   </div>
                   {/* Location Toggle Skeleton */}
                   <div className="bg-gray-700/50 px-3 py-2 rounded-lg flex items-center">
-                    <div className="h-4 bg-gray-600 rounded w-16 mr-2"></div>
+                    <span className="text-gray-400 mr-2">Nearby:</span>
                     <div className="h-5 w-9 bg-gray-600 rounded-full"></div>
-                    <div className="h-4 bg-gray-600 rounded w-8 ml-2"></div>
                   </div>
                 </div>
               </div>
@@ -427,9 +446,7 @@ export default function CategoryPage() {
                       }`}
                     />
                   </button>
-                  <span className="text-white font-semibold ml-2 text-xs">
-                    {locationBased ? 'ON' : 'OFF'}
-                  </span>
+
                 </div>
 
                 {/* Location Info (when location-based is active) */}
