@@ -319,22 +319,55 @@ export default function CategoryPage() {
               ))}
             </div>
 
-            {/* Pagination Skeleton */}
-            <div
-              className="flex justify-center items-center space-x-2"
-              style={{
-                animation: 'twinkle-blur 2s ease-in-out infinite',
-                filter: 'blur(0.5px)'
-              }}
-            >
-              <div className="h-10 bg-gray-700 rounded px-4 w-20"></div>
-              <div className="flex space-x-1">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-10 w-10 bg-gray-700 rounded"></div>
-                ))}
+            {/* Pagination - Show actual pagination during loading */}
+            {data.pagination.total_pages > 1 && (
+              <div className="flex justify-center items-center space-x-2">
+                <button
+                  disabled={true}
+                  className="px-4 py-2 bg-gray-800 text-white rounded-lg opacity-50 cursor-not-allowed transition-colors"
+                >
+                  Previous
+                </button>
+                
+                <div className="flex space-x-1">
+                  {(() => {
+                    const totalPages = data.pagination.total_pages;
+                    const maxVisiblePages = 5;
+                    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+                    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+                    // Adjust start page if we're near the end
+                    if (endPage - startPage + 1 < maxVisiblePages) {
+                      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                    }
+
+                    return Array.from({ length: endPage - startPage + 1 }, (_, i) => {
+                      const page = startPage + i;
+                      return (
+                        <button
+                          key={page}
+                          disabled={true}
+                          className={`px-3 py-2 rounded-lg transition-colors cursor-not-allowed ${
+                            page === currentPage
+                              ? 'bg-green-500 text-white opacity-75'
+                              : 'bg-gray-800 text-gray-300 opacity-50'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    });
+                  })()}
+                </div>
+
+                <button
+                  disabled={true}
+                  className="px-4 py-2 bg-gray-800 text-white rounded-lg opacity-50 cursor-not-allowed transition-colors"
+                >
+                  Next
+                </button>
               </div>
-              <div className="h-10 bg-gray-700 rounded px-4 w-20"></div>
-            </div>
+            )}
           </main>
         </div>
         <Footer />
@@ -530,22 +563,34 @@ export default function CategoryPage() {
                   </button>
                   
                   <div className="flex space-x-1">
-                    {Array.from({ length: Math.min(5, data.pagination.total_pages) }, (_, i) => {
-                      const page = i + 1;
-                      return (
-                        <button
-                          key={page}
-                          onClick={() => handlePageChange(page)}
-                          className={`px-3 py-2 rounded-lg transition-colors ${
-                            page === currentPage
-                              ? 'bg-green-500 text-white'
-                              : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      );
-                    })}
+                    {(() => {
+                      const totalPages = data.pagination.total_pages;
+                      const maxVisiblePages = 5;
+                      let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+                      let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+                      // Adjust start page if we're near the end
+                      if (endPage - startPage + 1 < maxVisiblePages) {
+                        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                      }
+
+                      return Array.from({ length: endPage - startPage + 1 }, (_, i) => {
+                        const page = startPage + i;
+                        return (
+                          <button
+                            key={page}
+                            onClick={() => handlePageChange(page)}
+                            className={`px-3 py-2 rounded-lg transition-colors ${
+                              page === currentPage
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        );
+                      });
+                    })()}
                   </div>
 
                   <button
