@@ -5,7 +5,6 @@ import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 
 export default function HeroSection() {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
   const featuredEvents = [
@@ -31,22 +30,15 @@ export default function HeroSection() {
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % featuredEvents.length);
-    setImageLoading(true);
     setImageError(false);
   };
 
   const prevSlide = () => {
     setCurrentSlide((prev) => (prev - 1 + featuredEvents.length) % featuredEvents.length);
-    setImageLoading(true);
     setImageError(false);
   };
 
-  const handleImageLoad = () => {
-    setImageLoading(false);
-  };
-
   const handleImageError = () => {
-    setImageLoading(false);
     setImageError(true);
   };
 
@@ -133,15 +125,6 @@ export default function HeroSection() {
         <div className="hidden lg:block w-72 xl:w-80 h-full overflow-hidden relative">
           {/* Image with enhanced styling */}
           <div className="relative w-full h-full">
-            {/* Loading placeholder */}
-            {imageLoading && (
-              <div className="absolute inset-0 image-placeholder">
-                <div className="absolute inset-0 bg-gradient-to-br from-gray-700/50 to-gray-800/50 flex items-center justify-center">
-                  <div className="w-8 h-8 border-2 border-gray-500 border-t-green-500 rounded-full animate-spin"></div>
-                </div>
-              </div>
-            )}
-            
             {/* Error fallback */}
             {imageError ? (
               <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
@@ -155,18 +138,17 @@ export default function HeroSection() {
                 key={`img-${currentSlide}`}
                 src={featuredEvents[currentSlide].image}
                 alt={featuredEvents[currentSlide].title}
-                className={`w-full h-full object-cover transition-all duration-700 ease-in-out transform group-hover:scale-110 hero-image image-enhanced ${imageLoading ? 'opacity-0 scale-105' : 'opacity-100 scale-100'}`}
+                className="w-full h-full object-cover transition-all duration-700 ease-in-out transform group-hover:scale-110 hero-image image-enhanced opacity-100 scale-100"
                 loading="eager"
                 decoding="async"
                 sizes="(max-width: 1024px) 0px, 360px"
-                onLoad={handleImageLoad}
                 onError={handleImageError}
               />
             )}
-            
+
             {/* Gradient overlay for better text readability */}
             <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-gray-900/20 group-hover:to-gray-900/10 transition-all duration-500"></div>
-            
+
             {/* Image quality indicator */}
             {!imageError && (
               <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1">
@@ -174,7 +156,7 @@ export default function HeroSection() {
               </div>
             )}
           </div>
-          
+
           {/* Decorative elements */}
           <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 via-blue-500 to-purple-500 opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
         </div>
