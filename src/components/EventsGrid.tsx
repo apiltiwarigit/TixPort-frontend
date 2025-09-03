@@ -5,16 +5,30 @@ import { ChevronRightIcon } from '@heroicons/react/24/outline';
 import { eventsApi } from '@/lib/api';
 import Link from 'next/link';
 import { EventFilters, Event } from '@/types';
+import { GridEventCard, CompactEventCard, ListEventCard } from '@/components/EventCard';
+import { Loading, EmptyState } from '@/components/ui';
 
-interface EventsGridProps {
-  title: string;
-  category?: string;
-  city?: string;
-  state?: string;
-  moreButtonText: string;
+export interface EventsGridProps {
+  events?: Event[];
+  loading?: boolean;
+  error?: string | null;
+  variant?: 'grid' | 'list' | 'compact' | 'home';
+  columns?: {
+    sm?: number;
+    md?: number;
+    lg?: number;
+  };
+  showImages?: boolean;
+  showPrices?: boolean;
+  showPerformers?: boolean;
+  showCategories?: boolean;
+  className?: string;
+  emptyMessage?: string;
+  onEventClick?: (event: Event) => void;
 }
 
-function EventCard({ event }: { event: Event }) {
+// Home page specific event card (keeping the original compact style)
+function HomeEventCard({ event }: { event: Event }) {
   return (
     <Link href={`/event/${event.id}/buy`}>
       <div className="flex items-center justify-between p-2 sm:p-3 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-750 transition-all duration-300 cursor-pointer group transform hover:scale-[1.02] hover:shadow-lg animate-fade-in-up">
@@ -30,7 +44,120 @@ function EventCard({ event }: { event: Event }) {
   );
 }
 
-export default function EventsGrid({ title, category, city, state, moreButtonText }: EventsGridProps) {
+export function EventsGrid({
+  events = [],
+  loading = false,
+  error = null,
+  variant = 'grid',
+  columns = { sm: 1, md: 2, lg: 3 },
+  showImages = false,
+  showPrices = true,
+  showPerformers = true,
+  showCategories = false,
+  className = '',
+  emptyMessage = 'No events found',
+  onEventClick
+}: EventsGridProps) {
+  
+  if (loading) {
+    return <Loading />;
+  }
+
+  if (error) {
+    return (
+      <div className="text-red-400 text-sm p-4 bg-red-900/20 border border-red-800 rounded">
+        <div className="font-medium mb-1">Unable to load events</div>
+        <div className="text-xs text-red-300">{error}</div>
+      </div>
+    );
+  }
+
+  if (events.length === 0) {
+    return (
+      <EmptyState 
+        title="No Events Found" 
+        description={emptyMessage}
+      />
+    );
+  }
+
+  // Grid layout classes
+  const getGridClasses = () => {
+    if (variant === 'list') return 'space-y-4';
+    if (variant === 'home') return 'space-y-2 sm:space-y-3';
+    
+    return `grid gap-4 sm:gap-6 ${
+      `grid-cols-${columns.sm || 1} ` +
+      `md:grid-cols-${columns.md || 2} ` +
+      `lg:grid-cols-${columns.lg || 3}`
+    }`;
+  };
+
+  const renderEventCard = (event: Event, index: number) => {
+    const cardProps = {
+      event,
+      showImage: showImages,
+      showPrice: showPrices,
+      showPerformers: showPerformers,
+      showCategory: showCategories,
+      onButtonClick: onEventClick,
+      key: event.id
+    };
+
+    const animationDelay = { animationDelay: `${index * 0.1}s` };
+
+    switch (variant) {
+      case 'home':
+        return (
+          <div key={event.id} style={animationDelay}>
+            <HomeEventCard event={event} />
+          </div>
+        );
+      case 'list':
+        return (
+          <div key={event.id} style={animationDelay}>
+            <ListEventCard {...cardProps} />
+          </div>
+        );
+      case 'compact':
+        return (
+          <div key={event.id} style={animationDelay}>
+            <CompactEventCard {...cardProps} />
+          </div>
+        );
+      case 'grid':
+      default:
+        return (
+          <div key={event.id} style={animationDelay}>
+            <GridEventCard {...cardProps} />
+          </div>
+        );
+    }
+  };
+
+  return (
+    <div className={`${getGridClasses()} ${className}`}>
+      {events.map((event, index) => renderEventCard(event, index))}
+    </div>
+  );
+}
+
+// Legacy EventsGrid component for home page (with API fetching)
+interface LegacyEventsGridProps {
+  title: string;
+  category?: string;
+  city?: string;
+  state?: string;
+  moreButtonText: string;
+}
+
+export default function LegacyEventsGrid({ 
+  title, 
+  category, 
+  city, 
+  state, 
+  moreButtonText 
+}: LegacyEventsGridProps) {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,16 +168,12 @@ export default function EventsGrid({ title, category, city, state, moreButtonTex
         setLoading(true);
         setError(null);
         
-        // Allow API call even without city/state since we use IP geolocation
         console.log('🌐 [EventsGrid] Making API call with IP geolocation support');
 
         const filters: EventFilters = {};
         
         // Use direct category ID for reliable filtering
         if (category) {
-          // TODO: Replace hardcoded IDs with dynamic data from categories API
-          // We will use dynamic ID from the real data, not hardcoded ID
-          // Map category names to their actual API IDs (temporary hardcoded values)
           const categoryMap: { [key: string]: string } = {
             'concerts': '54',
             'sports': '1', 
@@ -66,17 +189,14 @@ export default function EventsGrid({ title, category, city, state, moreButtonTex
           }
         }
         
-        // Use IP geolocation for location-based results (no city/state needed)
-        // The backend will automatically detect the client's IP and use it for geolocation
+        // Use IP geolocation for location-based results
         filters.only_with_available_tickets = true;
-        filters.within = 60; // 60 mile radius - optimal for IP-based geolocation
+        filters.within = 60;
 
         // For first page, explicitly request IP geolocation
         if (!city && !state) {
-          // This will trigger backend IP auto-detection
-          filters.ip = 'auto'; // Special flag to request IP geolocation
+          filters.ip = 'auto';
         } else if (city || state) {
-          // If city/state are provided, use them as search query (for backward compatibility)
           const locationParts = [];
           if (city) locationParts.push(city);
           if (state) locationParts.push(state);
@@ -84,7 +204,6 @@ export default function EventsGrid({ title, category, city, state, moreButtonTex
         }
 
         // If we have location data with IP, use the actual IP address
-        // This is more reliable than relying on backend IP extraction
         if (typeof window !== 'undefined') {
           try {
             const locationData = localStorage.getItem('location_cache');
@@ -100,10 +219,8 @@ export default function EventsGrid({ title, category, city, state, moreButtonTex
           }
         }
 
-        // Debug: Log what EventsGrid is sending
         console.log('🎯 [EventsGrid] Props received:', { category, city, state });
         console.log('📤 [EventsGrid] Official API filters being sent:', filters);
-        console.log('✅ [EventsGrid] Location search query:', filters.q);
 
         const response = await eventsApi.getEvents(filters, 1, 5);
         
@@ -111,14 +228,6 @@ export default function EventsGrid({ title, category, city, state, moreButtonTex
         const transformedEvents: Event[] = response.data.events.map((event: any) => {
           const eventDateTime = event.occurs_at_local || event.occurs_at || event.date_time_local;
           const venueAddress = event.venue?.address || {};
-
-          // Debug first event to verify venue data extraction
-          if (event === response.data.events[0]) {
-            console.log('🏟️ [Venue Debug] Raw venue data:', event.venue);
-            console.log('📍 [Venue Debug] Extracted city:', venueAddress.locality || venueAddress.city);
-            console.log('📍 [Venue Debug] Extracted state:', venueAddress.region || venueAddress.state);
-            console.log('📍 [Venue Debug] Final location:', event.venue?.location);
-          }
 
           return {
             id: event.id,
@@ -155,7 +264,6 @@ export default function EventsGrid({ title, category, city, state, moreButtonTex
             min_ticket_price: event.min_ticket_price,
             max_ticket_price: event.max_ticket_price,
             url: event.url || `/event/${event.id}/buy`,
-            // Simplified fields for backward compatibility
             date: eventDateTime ? new Date(eventDateTime).toLocaleDateString('en-US', {
               weekday: 'short',
               month: 'short',
@@ -175,7 +283,6 @@ export default function EventsGrid({ title, category, city, state, moreButtonTex
         console.error('Error fetching events:', err);
         const errorMessage = err?.response?.data?.message || err?.message || 'Failed to load events';
         setError(errorMessage);
-        // Fallback to empty array if API fails
         setEvents([]);
       } finally {
         setLoading(false);
@@ -226,7 +333,7 @@ export default function EventsGrid({ title, category, city, state, moreButtonTex
         {events.length > 0 ? (
           events.map((event, index) => (
             <div key={event.id} style={{ animationDelay: `${index * 0.1}s` }}>
-              <EventCard event={event} />
+              <HomeEventCard event={event} />
             </div>
           ))
         ) : (
@@ -241,5 +348,3 @@ export default function EventsGrid({ title, category, city, state, moreButtonTex
     </div>
   );
 }
-
-

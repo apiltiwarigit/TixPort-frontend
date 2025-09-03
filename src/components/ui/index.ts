@@ -15,3 +15,6 @@ export { Loading, LoadingSkeleton, LoadingCard } from './Loading';
 export { EmptyState, EmptyEvents, EmptyCart } from './EmptyState';
 
 export { Card, CardHeader, CardTitle, CardContent, CardFooter } from './Card';
+
+export { Pagination, CompactPagination, PaginationWithLoading } from './Pagination';
+export type { PaginationProps } from './Pagination';
