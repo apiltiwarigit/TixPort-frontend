@@ -103,11 +103,17 @@ export default function CategoryPage() {
       });
 
       // Extract category info from the first event if available
-      const categoryInfo = transformedEvents.length > 0 ? transformedEvents[0].category : {
-        id: parseInt(categoryId),
-        name: `Category ${categoryId}`,
-        parent_id: undefined
-      };
+      const categoryInfo = categoryId === 'all'
+        ? {
+            id: 0,
+            name: 'All Events',
+            parent_id: undefined
+          }
+        : transformedEvents.length > 0 ? transformedEvents[0].category : {
+            id: parseInt(categoryId),
+            name: `Category ${categoryId}`,
+            parent_id: undefined
+          };
 
       setData({
         category: categoryInfo,
@@ -223,10 +229,10 @@ export default function CategoryPage() {
                 </div>
                 <div>
                   <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
-                    {data.category?.name || 'Category'} Events
+                    {data.category?.name === 'All Events' ? 'All Events' : `${data.category?.name || 'Category'} Events`}
                   </h1>
                   <p className="text-gray-300 text-lg">
-                    Discover amazing {data.category?.name?.toLowerCase() || 'category'} events happening near you
+                    Discover amazing {data.category?.name === 'All Events' ? 'events from all categories' : `${data.category?.name?.toLowerCase() || 'category'} events`}
                   </p>
                 </div>
               </div>
@@ -237,10 +243,12 @@ export default function CategoryPage() {
                   <span className="text-gray-400">Total Events: </span>
                   <span className="text-white font-semibold">{data.pagination.total_entries}</span>
                 </div>
-                <div className="bg-gray-800/50 px-3 py-2 rounded-lg">
-                  <span className="text-gray-400">Category ID: </span>
-                  <span className="text-white font-semibold">{data.category?.id || categoryId}</span>
-                </div>
+                {categoryId !== 'all' && (
+                  <div className="bg-gray-800/50 px-3 py-2 rounded-lg">
+                    <span className="text-gray-400">Category ID: </span>
+                    <span className="text-white font-semibold">{data.category?.id || categoryId}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

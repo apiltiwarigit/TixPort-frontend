@@ -282,6 +282,23 @@ export default function Sidebar() {
           </div>
         ) : (
           <nav className="space-y-1">
+            {/* All Events Item */}
+            <div className="py-1 text-sm group">
+              <div className="flex items-center py-1 text-sm group">
+                <div className="w-5" /> {/* Spacer for alignment */}
+                <Link
+                  href="/category/all"
+                  className={`flex-1 px-2 py-1 rounded transition-all duration-200 truncate font-medium ${
+                    pathname === '/category/all'
+                      ? 'text-white bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg shadow-blue-500/25'
+                      : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+                  }`}
+                >
+                  All Events
+                </Link>
+              </div>
+            </div>
+
             {categories.map((category) => (
               <CategoryTreeItem
                 key={category.id}
