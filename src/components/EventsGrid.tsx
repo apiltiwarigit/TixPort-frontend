@@ -46,17 +46,30 @@ export default function EventsGrid({ title, category, city, state, moreButtonTex
 
         const filters: EventFilters = {};
         
-        // Use category slug to fetch real category ID from API
+        // Use direct category ID for reliable filtering
         if (category) {
-          // For real API integration, we need to map category slug to actual category ID
-          // This will be handled by the backend when we pass the slug
-          filters.category_slug = category; // Pass slug to backend for proper mapping
+          // TODO: Replace hardcoded IDs with dynamic data from categories API
+          // We will use dynamic ID from the real data, not hardcoded ID
+          // Map category names to their actual API IDs (temporary hardcoded values)
+          const categoryMap: { [key: string]: string } = {
+            'concerts': '54',
+            'sports': '1', 
+            'theatre': '68'
+          };
+          
+          const categoryId = categoryMap[category.toLowerCase()];
+          if (categoryId) {
+            filters.category_id = categoryId;
+            console.log(`🏷️ [EventsGrid] Using category ID ${categoryId} for "${category}"`);
+          } else {
+            console.warn(`⚠️ [EventsGrid] Unknown category: "${category}"`);
+          }
         }
         
         // Use IP geolocation for location-based results (no city/state needed)
         // The backend will automatically detect the client's IP and use it for geolocation
         filters.only_with_available_tickets = true;
-        filters.within = 500; // 500 mile radius - optimal for IP-based geolocation
+        filters.within = 60; // 60 mile radius - optimal for IP-based geolocation
         
         // For first page, explicitly request IP geolocation
         if (!city && !state) {

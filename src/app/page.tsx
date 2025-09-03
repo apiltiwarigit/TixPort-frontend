@@ -114,7 +114,7 @@ export default function Home() {
               />
               <EventsGrid
                 title={`Local Theatre Events`}
-                category="Theater"
+                category="Theatre"
                 moreButtonText="More Theatre Events"
               />
             </div>
