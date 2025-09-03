@@ -70,7 +70,7 @@ export default function EventsGrid({ title, category, city, state, moreButtonTex
         // The backend will automatically detect the client's IP and use it for geolocation
         filters.only_with_available_tickets = true;
         filters.within = 60; // 60 mile radius - optimal for IP-based geolocation
-        
+
         // For first page, explicitly request IP geolocation
         if (!city && !state) {
           // This will trigger backend IP auto-detection
@@ -81,6 +81,23 @@ export default function EventsGrid({ title, category, city, state, moreButtonTex
           if (city) locationParts.push(city);
           if (state) locationParts.push(state);
           filters.q = locationParts.join(', ');
+        }
+
+        // If we have location data with IP, use the actual IP address
+        // This is more reliable than relying on backend IP extraction
+        if (typeof window !== 'undefined') {
+          try {
+            const locationData = localStorage.getItem('location_cache');
+            if (locationData) {
+              const location = JSON.parse(locationData);
+              if (location && location.ip && location.ip !== 'Unknown' && location.ip !== 'Browser-Geolocation') {
+                filters.ip = location.ip;
+                console.log('📍 [EventsGrid] Using cached IP for geolocation:', location.ip);
+              }
+            }
+          } catch (error) {
+            console.warn('Error reading cached IP:', error);
+          }
         }
 
         // Debug: Log what EventsGrid is sending

@@ -73,12 +73,14 @@ export default function CategoryPage() {
           category_id: categoryId // Always include category filter for specific categories
         };
 
-        // Apply location-based filtering if we have location data
-        if (location && location.city !== 'Unknown' && location.state !== 'Unknown') {
-          filters.q = `${location.city}, ${location.state}`;
+        // Use IP-based geolocation for location-based filtering
+        // Use the actual IP from location context if available, otherwise use 'auto'
+        if (location && location.ip && location.ip !== 'Unknown') {
+          filters.ip = location.ip;
+          console.log('📍 [Category] Using IP for geolocation:', location.ip);
         } else {
-          // Fallback to IP-based geolocation
           filters.ip = 'auto';
+          console.log('📍 [Category] No IP available, using auto-detection');
         }
 
         eventsResponse = await eventsApi.getEvents(filters, currentPage, 20);
@@ -450,12 +452,12 @@ export default function CategoryPage() {
                 </div>
 
                 {/* Location Info (when location-based is active) */}
-                {locationBased && location && (
+                {locationBased && (
                   <div className="bg-gray-800/50 px-3 py-2 rounded-lg">
                     <span className="text-gray-400">Location: </span>
                     <span className="text-white font-semibold">
-                      {location.city !== 'Unknown' && location.state !== 'Unknown'
-                        ? `${location.city}, ${location.state}`
+                      {location && location.city !== 'Unknown' && location.state !== 'Unknown'
+                        ? `${location.city}, ${location.state} (IP-based)`
                         : 'IP-based'}
                     </span>
                   </div>
