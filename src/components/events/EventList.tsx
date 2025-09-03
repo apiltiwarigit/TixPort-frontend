@@ -244,7 +244,7 @@ export function EventList({
           // Wrap in Link if no custom onClick provided
           if (!onEventClick && showButtons) {
             return (
-              <Link key={event.id} href={`/events/${event.id}/buy`}>
+              <Link key={event.id} href={`/event/${event.id}/buy`}>
                 {eventContent}
               </Link>
             );

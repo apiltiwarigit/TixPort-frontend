@@ -104,24 +104,14 @@ export default function Sidebar() {
   };
 
   const generateCategoryLink = (category: Category): string => {
-    // Create dynamic links based on category structure
+    // Create dynamic links based on category structure using new dynamic routes
     if (category.parent) {
-      // Child category - use parent/child structure
-      return `/sports/${category.slug}`;
+      // Child category - use dynamic parent structure
+      const parentSlug = category.parent.slug || category.parent.name.toLowerCase().replace(/\s+/g, '-');
+      return `/category/${parentSlug}`;
     } else {
-      // Root category
-      switch (category.slug) {
-        case 'concerts':
-        case 'music':
-          return '/concerts';
-        case 'sports':
-          return '/sports';
-        case 'theater':
-        case 'theatre':
-          return '/theatre';
-        default:
-          return `/${category.slug}`;
-      }
+      // Root category - use dynamic category route
+      return `/category/${category.slug}`;
     }
   };
 

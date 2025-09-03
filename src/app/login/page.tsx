@@ -2,16 +2,19 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { PageContainer } from '@/components/layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { Input } from '@/components/ui';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   EyeIcon,
   EyeSlashIcon,
   EnvelopeIcon,
   LockClosedIcon,
-  ArrowRightIcon
+  ArrowRightIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 
 export default function LoginPage() {
@@ -21,6 +24,13 @@ export default function LoginPage() {
     password: '',
     rememberMe: false
   });
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  const { signIn } = useAuth();
+  const router = useRouter();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -28,12 +38,44 @@ export default function LoginPage() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+    // Clear error and success when user starts typing
+    if (error) {
+      setError(null);
+      setHasError(false);
+    }
+    if (success) setSuccess(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Login logic will be implemented later
-    console.log('Login attempt:', formData);
+    setError(null);
+    setSuccess(null);
+    setHasError(false);
+    setIsLoading(true);
+
+    try {
+      const { error: signInError } = await signIn(formData.email, formData.password);
+
+      if (signInError) {
+        setError(signInError.message || 'Failed to sign in');
+        setHasError(true);
+        setIsLoading(false);
+        return;
+      } else {
+        // Show success message briefly before redirect
+        setSuccess('Login successful! Redirecting...');
+        setTimeout(() => {
+          router.push('/');
+        }, 1000);
+      }
+    } catch (err: any) {
+      setError(err.message || 'An unexpected error occurred');
+      setHasError(true);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(false);
   };
 
   return (
@@ -51,6 +93,35 @@ export default function LoginPage() {
             </CardHeader>
 
             <CardContent>
+              {error && (
+                <div className="mb-6 p-4 bg-red-900/20 border border-red-800 rounded-lg animate-pulse">
+                  <div className="flex items-start space-x-3">
+                    <ExclamationTriangleIcon className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <span className="text-red-400 text-sm block">{error}</span>
+                      <button
+                        onClick={() => {
+                          setError(null);
+                          setHasError(false);
+                        }}
+                        className="text-red-300 hover:text-red-200 text-xs mt-1 underline"
+                      >
+                        Try again
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {success && (
+                <div className="mb-6 p-4 bg-green-900/20 border border-green-800 rounded-lg flex items-center space-x-3">
+                  <svg className="h-5 w-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-green-400 text-sm">{success}</span>
+                </div>
+              )}
+
               <form onSubmit={handleSubmit} className="space-y-6">
                 <Input
                   label="Email Address"
@@ -113,9 +184,18 @@ export default function LoginPage() {
                 <Button
                   type="submit"
                   fullWidth
-                  rightIcon={<ArrowRightIcon className="h-4 w-4" />}
+                  disabled={isLoading || !!success}
+                  rightIcon={isLoading ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                  ) : success ? (
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <ArrowRightIcon className="h-4 w-4" />
+                  )}
                 >
-                  Sign In
+                  {isLoading ? 'Signing in...' : success ? 'Success!' : 'Sign In'}
                 </Button>
               </form>
 

@@ -138,7 +138,7 @@ export function EventCard({
   // Wrap in Link if no custom onClick provided
   if (!onButtonClick && showButton) {
     return (
-      <Link href={`/events/${event.id}/buy`}>
+      <Link href={`/event/${event.id}/buy`}>
         <Card
           className={`cursor-pointer hover-lift transition-all duration-300 animate-fade-in-up ${className}`}
           hover

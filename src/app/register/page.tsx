@@ -4,8 +4,10 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui';
 import { Button } from '@/components/ui';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   EyeIcon,
   EyeSlashIcon,
@@ -14,7 +16,8 @@ import {
   UserIcon,
   PhoneIcon,
   ArrowRightIcon,
-  CheckIcon
+  CheckIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 
 export default function RegisterPage() {
@@ -30,6 +33,13 @@ export default function RegisterPage() {
     agreeToTerms: false,
     subscribeToNewsletter: true
   });
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  const { signUp } = useAuth();
+  const router = useRouter();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -37,12 +47,76 @@ export default function RegisterPage() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+    // Clear error and success when user starts typing
+    if (error) {
+      setError(null);
+      setHasError(false);
+    }
+    if (success) setSuccess(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Registration logic will be implemented later
-    console.log('Registration attempt:', formData);
+    setError(null);
+    setSuccess(null);
+
+    // Validation
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setHasError(true);
+      return;
+    }
+
+    if (!formData.agreeToTerms) {
+      setError('You must agree to the Terms of Service');
+      setHasError(true);
+      return;
+    }
+
+    const passwordRequirements = [
+      { test: formData.password.length >= 8, message: 'Password must be at least 8 characters' },
+      { test: /[A-Z]/.test(formData.password), message: 'Password must contain an uppercase letter' },
+      { test: /[a-z]/.test(formData.password), message: 'Password must contain a lowercase letter' },
+      { test: /\d/.test(formData.password), message: 'Password must contain a number' }
+    ];
+
+    const failedRequirement = passwordRequirements.find(req => !req.test);
+    if (failedRequirement) {
+      setError(failedRequirement.message);
+      setHasError(true);
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { error: signUpError } = await signUp(formData.email, formData.password, {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        phone: formData.phone,
+        newsletter_subscribed: formData.subscribeToNewsletter
+      });
+
+      if (signUpError) {
+        setError(signUpError.message || 'Failed to create account');
+        setHasError(true);
+        setIsLoading(false);
+        return;
+      } else {
+        // Show success message briefly before redirect
+        setSuccess('Account created successfully! Redirecting...');
+        setTimeout(() => {
+          router.push('/');
+        }, 1500);
+      }
+    } catch (err: any) {
+      setError(err.message || 'An unexpected error occurred');
+      setHasError(true);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(false);
   };
 
   const passwordRequirements = [
@@ -70,6 +144,35 @@ export default function RegisterPage() {
                 Create your account to start buying tickets
               </p>
             </div>
+
+            {/* Error Display */}
+            {error && (
+              <div className="mb-6 p-4 bg-red-900/20 border border-red-800 rounded-lg animate-pulse">
+                <div className="flex items-start space-x-3">
+                  <ExclamationTriangleIcon className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <span className="text-red-400 text-sm block">{error}</span>
+                    <button
+                      onClick={() => {
+                        setError(null);
+                        setHasError(false);
+                      }}
+                      className="text-red-300 hover:text-red-200 text-xs mt-1 underline"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Success Display */}
+            {success && (
+              <div className="mb-6 p-4 bg-green-900/20 border border-green-800 rounded-lg flex items-center space-x-3">
+                <CheckIcon className="h-5 w-5 text-green-400 flex-shrink-0" />
+                <span className="text-green-400 text-sm">{success}</span>
+              </div>
+            )}
 
             {/* Register Form */}
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -230,9 +333,16 @@ export default function RegisterPage() {
               <Button
                 type="submit"
                 fullWidth
-                rightIcon={<ArrowRightIcon className="h-4 w-4" />}
+                disabled={isLoading || !!success}
+                rightIcon={isLoading ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                ) : success ? (
+                  <CheckIcon className="h-4 w-4" />
+                ) : (
+                  <ArrowRightIcon className="h-4 w-4" />
+                )}
               >
-                Create Account
+                {isLoading ? 'Creating Account...' : success ? 'Success!' : 'Create Account'}
               </Button>
             </form>
 

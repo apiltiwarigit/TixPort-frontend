@@ -16,7 +16,7 @@ interface EventsGridProps {
 
 function EventCard({ event }: { event: Event }) {
   return (
-    <Link href={`/events/${event.id}/buy`}>
+    <Link href={`/event/${event.id}/buy`}>
       <div className="flex items-center justify-between p-2 sm:p-3 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-750 transition-all duration-300 cursor-pointer group transform hover:scale-[1.02] hover:shadow-lg animate-fade-in-up">
         <div className="flex-1 min-w-0">
           <div className="text-white font-medium text-xs sm:text-sm mb-1 truncate group-hover:text-green-400 transition-colors duration-300">{event.name}</div>
@@ -46,22 +46,11 @@ export default function EventsGrid({ title, category, city, state, moreButtonTex
 
         const filters: EventFilters = {};
         
-        // Use official TicketEvolution API parameters
+        // Use category slug to fetch real category ID from API
         if (category) {
-          // Map category names to TicketEvolution category IDs
-          const categoryMapping: Record<string, string> = {
-            'Concerts': '1',
-            'Music': '1',
-            'Sports': '2',
-            'Baseball': '2',
-            'Basketball': '2', 
-            'Football': '2',
-            'Hockey': '2',
-            'Theater': '3',
-            'Theatre': '3',
-            'Comedy': '4'
-          };
-          filters.category_id = categoryMapping[category] || category;
+          // For real API integration, we need to map category slug to actual category ID
+          // This will be handled by the backend when we pass the slug
+          filters.category_slug = category; // Pass slug to backend for proper mapping
         }
         
         // Use IP geolocation for location-based results (no city/state needed)
@@ -135,7 +124,7 @@ export default function EventsGrid({ title, category, city, state, moreButtonTex
             })),
             min_ticket_price: event.min_ticket_price,
             max_ticket_price: event.max_ticket_price,
-            url: event.url || `/events/${event.id}`,
+            url: event.url || `/event/${event.id}/buy`,
             // Simplified fields for backward compatibility
             date: eventDateTime ? new Date(eventDateTime).toLocaleDateString('en-US', {
               weekday: 'short',

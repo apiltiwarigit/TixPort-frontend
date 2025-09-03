@@ -16,11 +16,13 @@ import {
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { useLocation } from '@/contexts/LocationContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { location, loading, error, formatLocation } = useLocation();
+  const { user, profile, signOut } = useAuth();
 
   return (
     <>
@@ -115,32 +117,60 @@ export default function Header() {
 
             {/* Mobile Navigation Icons */}
             <div className="flex items-center space-x-2 lg:hidden">
-              <Link href="/login" className="text-gray-300 hover:text-white p-2 transform transition-all duration-300 hover:scale-110">
-                <UserIcon className="h-5 w-5" />
-              </Link>
-              <Link href="/cart" className="text-gray-300 hover:text-white p-2 relative transform transition-all duration-300 hover:scale-110">
-                <ShoppingCartIcon className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center animate-pulse">
-                  0
-                </span>
-              </Link>
+              {user ? (
+                <>
+                  <button
+                    onClick={() => signOut()}
+                    className="text-gray-300 hover:text-white p-2 transform transition-all duration-300 hover:scale-110"
+                    title="Sign Out"
+                  >
+                    <UserIcon className="h-5 w-5" />
+                  </button>
+                  <Link href="/cart" className="text-gray-300 hover:text-white p-2 relative transform transition-all duration-300 hover:scale-110">
+                    <ShoppingCartIcon className="h-5 w-5" />
+                    <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center animate-pulse">
+                      0
+                    </span>
+                  </Link>
+                </>
+              ) : (
+                <Link href="/login" className="text-gray-300 hover:text-white p-2 transform transition-all duration-300 hover:scale-110">
+                  <UserIcon className="h-5 w-5" />
+                </Link>
+              )}
             </div>
 
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center space-x-6">
-              <Link href="/login" className="text-gray-300 hover:text-white text-sm font-medium flex items-center space-x-1 transform transition-all duration-300 hover:scale-105">
-                <UserIcon className="h-4 w-4" />
-                <span>Login</span>
-              </Link>
-              <Link href="/register" className="text-gray-300 hover:text-white text-sm font-medium transform transition-all duration-300 hover:scale-105">
-                Register
-              </Link>
-              <Link href="/cart" className="text-gray-300 hover:text-white text-sm font-medium relative transform transition-all duration-300 hover:scale-105">
-                <ShoppingCartIcon className="h-5 w-5" />
-                <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-bounce">
-                  0
-                </span>
-              </Link>
+              {user ? (
+                <>
+                  <span className="text-gray-300 text-sm font-medium">
+                    Welcome, {profile?.first_name || user.email?.split('@')[0] || 'User'}
+                  </span>
+                  <button
+                    onClick={() => signOut()}
+                    className="text-gray-300 hover:text-white text-sm font-medium transform transition-all duration-300 hover:scale-105"
+                  >
+                    Sign Out
+                  </button>
+                  <Link href="/cart" className="text-gray-300 hover:text-white text-sm font-medium relative transform transition-all duration-300 hover:scale-105">
+                    <ShoppingCartIcon className="h-5 w-5" />
+                    <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-bounce">
+                      0
+                    </span>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link href="/login" className="text-gray-300 hover:text-white text-sm font-medium flex items-center space-x-1 transform transition-all duration-300 hover:scale-105">
+                    <UserIcon className="h-4 w-4" />
+                    <span>Login</span>
+                  </Link>
+                  <Link href="/register" className="text-gray-300 hover:text-white text-sm font-medium transform transition-all duration-300 hover:scale-105">
+                    Register
+                  </Link>
+                </>
+              )}
             </nav>
           </div>
         </div>
@@ -196,28 +226,28 @@ export default function Header() {
             {/* Main Navigation */}
             <div className="mb-8">
               <nav className="space-y-2">
-                <Link href="/concerts" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors" onClick={() => setIsMenuOpen(false)}>
+                <Link href="/category/concerts" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors" onClick={() => setIsMenuOpen(false)}>
                   Concerts
                 </Link>
-                <Link href="/theatre" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors" onClick={() => setIsMenuOpen(false)}>
+                <Link href="/category/theatre" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors" onClick={() => setIsMenuOpen(false)}>
                   Theatre
                 </Link>
-                <Link href="/sports" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors" onClick={() => setIsMenuOpen(false)}>
+                <Link href="/category/sports" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors" onClick={() => setIsMenuOpen(false)}>
                   Sports
                 </Link>
-                <Link href="/sports/nfl" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors ml-4" onClick={() => setIsMenuOpen(false)}>
+                <Link href="/category/sports" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors ml-4" onClick={() => setIsMenuOpen(false)}>
                   NFL Football
                 </Link>
-                <Link href="/sports/mlb" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors ml-4" onClick={() => setIsMenuOpen(false)}>
+                <Link href="/category/sports" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors ml-4" onClick={() => setIsMenuOpen(false)}>
                   MLB Baseball
                 </Link>
-                <Link href="/sports/nba" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors ml-4" onClick={() => setIsMenuOpen(false)}>
+                <Link href="/category/sports" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors ml-4" onClick={() => setIsMenuOpen(false)}>
                   NBA Basketball
                 </Link>
-                <Link href="/sports/nhl" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors ml-4" onClick={() => setIsMenuOpen(false)}>
+                <Link href="/category/sports" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors ml-4" onClick={() => setIsMenuOpen(false)}>
                   NHL Hockey
                 </Link>
-                <Link href="/sports/mls" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors ml-4" onClick={() => setIsMenuOpen(false)}>
+                <Link href="/category/sports" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors ml-4" onClick={() => setIsMenuOpen(false)}>
                   MLS Soccer
                 </Link>
               </nav>
@@ -227,17 +257,36 @@ export default function Header() {
             <div className="mb-8">
               <h3 className="text-white font-semibold text-sm mb-4">ACCOUNT</h3>
               <nav className="space-y-2">
-                <Link href="/login" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors flex items-center" onClick={() => setIsMenuOpen(false)}>
-                  <UserIcon className="h-4 w-4 mr-2" />
-                  Login
-                </Link>
-                <Link href="/register" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors" onClick={() => setIsMenuOpen(false)}>
-                  Register
-                </Link>
-                <Link href="/cart" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors flex items-center" onClick={() => setIsMenuOpen(false)}>
-                  <ShoppingCartIcon className="h-4 w-4 mr-2" />
-                  Cart
-                </Link>
+                {user ? (
+                  <>
+                    <div className="text-white py-2 text-sm font-medium">
+                      {profile?.first_name || user.email?.split('@')[0] || 'User'}
+                    </div>
+                    <button
+                      onClick={() => {
+                        signOut();
+                        setIsMenuOpen(false);
+                      }}
+                      className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors text-left w-full"
+                    >
+                      Sign Out
+                    </button>
+                    <Link href="/cart" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors flex items-center" onClick={() => setIsMenuOpen(false)}>
+                      <ShoppingCartIcon className="h-4 w-4 mr-2" />
+                      Cart
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/login" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors flex items-center" onClick={() => setIsMenuOpen(false)}>
+                      <UserIcon className="h-4 w-4 mr-2" />
+                      Login
+                    </Link>
+                    <Link href="/register" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors" onClick={() => setIsMenuOpen(false)}>
+                      Register
+                    </Link>
+                  </>
+                )}
               </nav>
             </div>
 

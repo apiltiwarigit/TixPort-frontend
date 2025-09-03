@@ -89,7 +89,7 @@ export default function EventCard({ event }: EventCardProps) {
             )}
           </div>
           <Link
-            href={`/events/${event.id}`}
+            href={`/event/${event.id}/buy`}
             className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors duration-200"
           >
             Buy Tickets

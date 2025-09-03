@@ -88,6 +88,7 @@ export interface EventFilters {
   performer_id?: number;           // Show only events at which this performer will perform
   primary_performer?: boolean;     // Only events where performer_id is primary
   category_id?: string;            // Show only events in this category
+  category_slug?: string;          // Category slug for slug-based filtering
   category_tree?: boolean;         // Include sub-categories
   q?: string;                      // Full-text search events
   fuzzy?: boolean;                 // Fuzzy full text search
