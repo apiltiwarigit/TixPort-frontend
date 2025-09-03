@@ -2,12 +2,13 @@
 
 import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { categoriesApi } from '@/lib/api';
+import { categoriesApi, eventsApi } from '@/lib/api';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import Footer from '@/components/Footer';
 import TopCounters from '@/components/TopCounters';
 import { Event, Category } from '@/types';
+import { useLocation } from '@/contexts/LocationContext';
 
 interface CategoryPageData {
   category: Category | null;
@@ -25,7 +26,8 @@ interface CategoryPageData {
 export default function CategoryPage() {
   const params = useParams();
   const categoryId = params.id as string;
-  
+  const { location } = useLocation();
+
   const [data, setData] = useState<CategoryPageData>({
     category: null,
     events: [],
@@ -40,17 +42,50 @@ export default function CategoryPage() {
   });
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [locationBased, setLocationBased] = useState(false);
 
   useEffect(() => {
     loadCategoryData();
-  }, [categoryId, currentPage]);
+  }, [categoryId, currentPage, locationBased]);
 
   const loadCategoryData = async () => {
     try {
       setData(prev => ({ ...prev, loading: true, error: null }));
 
-      // Load events for the category
-      const eventsResponse = await categoriesApi.getCategoryEvents(categoryId, currentPage, 20);
+      let eventsResponse;
+      let categoryInfo;
+
+      if (locationBased && categoryId !== 'all') {
+        // When location-based is enabled for specific categories, we need to get category info separately
+        try {
+          const categoryResponse = await categoriesApi.getCategoryEvents(categoryId, 1, 1);
+          if (categoryResponse.success && categoryResponse.data.events.length > 0) {
+            categoryInfo = categoryResponse.data.events[0].category;
+          }
+        } catch (error) {
+          console.warn('Failed to get category info:', error);
+        }
+
+        // Load events with location-based filtering
+        const filters: any = {
+          only_with_available_tickets: true,
+          within: 60, // 60 mile radius
+          category_id: categoryId // Always include category filter for specific categories
+        };
+
+        // Apply location-based filtering if we have location data
+        if (location && location.city !== 'Unknown' && location.state !== 'Unknown') {
+          filters.q = `${location.city}, ${location.state}`;
+        } else {
+          // Fallback to IP-based geolocation
+          filters.ip = 'auto';
+        }
+
+        eventsResponse = await eventsApi.getEvents(filters, currentPage, 20);
+      } else {
+        // Load events for the category (original behavior)
+        eventsResponse = await categoriesApi.getCategoryEvents(categoryId, currentPage, 20);
+      }
 
       if (!eventsResponse.success) {
         throw new Error(eventsResponse.message || 'Failed to load events');
@@ -103,17 +138,41 @@ export default function CategoryPage() {
       });
 
       // Extract category info from the first event if available
-      const categoryInfo = categoryId === 'all'
-        ? {
+      if (!categoryInfo) {
+        if (categoryId === 'all') {
+          categoryInfo = {
             id: 0,
             name: 'All Events',
             parent_id: undefined
+          };
+        } else if (transformedEvents.length > 0) {
+          // Try to find an event with the correct category ID first
+          const matchingEvent = transformedEvents.find(event =>
+            event.category.id.toString() === categoryId ||
+            event.category.id === parseInt(categoryId)
+          );
+
+          if (matchingEvent) {
+            categoryInfo = matchingEvent.category;
+          } else if (transformedEvents[0].category.name && transformedEvents[0].category.name !== 'General') {
+            // Use the first event's category if it has a real name
+            categoryInfo = transformedEvents[0].category;
+          } else {
+            // Fallback to a generic category name based on ID
+            categoryInfo = {
+              id: parseInt(categoryId),
+              name: `Category ${categoryId}`,
+              parent_id: undefined
+            };
           }
-        : transformedEvents.length > 0 ? transformedEvents[0].category : {
+        } else {
+          categoryInfo = {
             id: parseInt(categoryId),
             name: `Category ${categoryId}`,
             parent_id: undefined
           };
+        }
+      }
 
       setData({
         category: categoryInfo,
@@ -172,12 +231,20 @@ export default function CategoryPage() {
                     <div className="h-5 bg-gray-700 rounded w-96"></div>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-4 text-sm">
+                <div className="flex flex-wrap gap-3 text-sm">
+                  {/* Total Count Skeleton */}
                   <div className="bg-gray-700/50 px-3 py-2 rounded-lg">
-                    <div className="h-4 bg-gray-600 rounded w-24"></div>
+                    <div className="h-4 bg-gray-600 rounded w-16"></div>
                   </div>
+                  {/* Showing Range Skeleton */}
                   <div className="bg-gray-700/50 px-3 py-2 rounded-lg">
-                    <div className="h-4 bg-gray-600 rounded w-32"></div>
+                    <div className="h-4 bg-gray-600 rounded w-20"></div>
+                  </div>
+                  {/* Location Toggle Skeleton */}
+                  <div className="bg-gray-700/50 px-3 py-2 rounded-lg flex items-center">
+                    <div className="h-4 bg-gray-600 rounded w-16 mr-2"></div>
+                    <div className="h-5 w-9 bg-gray-600 rounded-full"></div>
+                    <div className="h-4 bg-gray-600 rounded w-8 ml-2"></div>
                   </div>
                 </div>
               </div>
@@ -326,16 +393,54 @@ export default function CategoryPage() {
                 </div>
               </div>
               
-              {/* Stats */}
-              <div className="flex flex-wrap gap-4 text-sm">
+              {/* Enhanced Stats */}
+              <div className="flex flex-wrap gap-3 text-sm">
+                {/* Total Count */}
                 <div className="bg-gray-800/50 px-3 py-2 rounded-lg">
-                  <span className="text-gray-400">Total Events: </span>
+                  <span className="text-gray-400">Total: </span>
                   <span className="text-white font-semibold">{data.pagination.total_entries}</span>
                 </div>
-                {categoryId !== 'all' && (
+
+                {/* Currently Visible Range */}
+                <div className="bg-gray-800/50 px-3 py-2 rounded-lg">
+                  <span className="text-gray-400">Showing: </span>
+                  <span className="text-white font-semibold">
+                    {data.pagination.total_entries === 0
+                      ? '0'
+                      : `${((currentPage - 1) * data.pagination.per_page) + 1} - ${Math.min(currentPage * data.pagination.per_page, data.pagination.total_entries)}`
+                    }
+                  </span>
+                </div>
+
+                {/* Location Toggle */}
+                <div className="bg-gray-800/50 px-3 py-2 rounded-lg flex items-center">
+                  <span className="text-gray-400 mr-2">Nearby:</span>
+                  <button
+                    onClick={() => setLocationBased(!locationBased)}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${
+                      locationBased ? 'bg-green-600' : 'bg-gray-600'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                        locationBased ? 'translate-x-5' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                  <span className="text-white font-semibold ml-2 text-xs">
+                    {locationBased ? 'ON' : 'OFF'}
+                  </span>
+                </div>
+
+                {/* Location Info (when location-based is active) */}
+                {locationBased && location && (
                   <div className="bg-gray-800/50 px-3 py-2 rounded-lg">
-                    <span className="text-gray-400">Category ID: </span>
-                    <span className="text-white font-semibold">{data.category?.id || categoryId}</span>
+                    <span className="text-gray-400">Location: </span>
+                    <span className="text-white font-semibold">
+                      {location.city !== 'Unknown' && location.state !== 'Unknown'
+                        ? `${location.city}, ${location.state}`
+                        : 'IP-based'}
+                    </span>
                   </div>
                 )}
               </div>
