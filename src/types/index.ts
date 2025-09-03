@@ -101,7 +101,7 @@ export interface EventFilters {
   // Geolocation parameters
   lat?: number;                    // Latitude for geolocated searches
   lon?: number;                    // Longitude for geolocated searches
-  within?: number;                 // Radius in miles (default 15)
+  within?: number;                 // Radius in miles (default 500)
   ip?: string;                     // Infer location by IP address
   postal_code?: string;            // Infer location by postal code
   city_state?: string;             // Infer location by city and state

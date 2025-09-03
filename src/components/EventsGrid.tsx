@@ -67,7 +67,7 @@ export default function EventsGrid({ title, category, city, state, moreButtonTex
         // Use IP geolocation for location-based results (no city/state needed)
         // The backend will automatically detect the client's IP and use it for geolocation
         filters.only_with_available_tickets = true;
-        filters.within = 250; // 250 mile radius
+        filters.within = 500; // 500 mile radius - optimal for IP-based geolocation
         
         // For first page, explicitly request IP geolocation
         if (!city && !state) {
