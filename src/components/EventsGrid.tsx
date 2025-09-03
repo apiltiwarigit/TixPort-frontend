@@ -4,16 +4,7 @@ import { useState, useEffect } from 'react';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
 import { eventsApi } from '@/lib/api';
 import Link from 'next/link';
-import { EventFilters } from '@/types';
-
-interface Event {
-  id: number;
-  name: string;
-  date: string;
-  time: string;
-  venue: string;
-  location: string;
-}
+import { EventFilters, Event } from '@/types';
 
 interface EventsGridProps {
   title: string;
@@ -30,7 +21,7 @@ function EventCard({ event }: { event: Event }) {
         <div className="flex-1 min-w-0">
           <div className="text-white font-medium text-xs sm:text-sm mb-1 truncate group-hover:text-green-400 transition-colors duration-300">{event.name}</div>
           <div className="text-gray-400 text-xs truncate group-hover:text-gray-300 transition-colors duration-300">
-            {event.date} | {event.time} | {event.venue} - {event.location}
+            {event.date} | {event.time} | {event.venue?.name || 'Unknown Venue'} - {event.location}
           </div>
         </div>
         <ChevronRightIcon className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 group-hover:text-white transition-all duration-300 flex-shrink-0 ml-2 transform group-hover:translate-x-1" />
@@ -98,22 +89,67 @@ export default function EventsGrid({ title, category, city, state, moreButtonTex
         const response = await eventsApi.getEvents(filters, 1, 5);
         
         // Transform the API response to match our Event interface
-        const transformedEvents: Event[] = response.data.events.map((event: any) => ({
-          id: event.id,
-          name: event.name,
-          date: new Date(event.event_date || event.date_time_local).toLocaleDateString('en-US', { 
-            weekday: 'short', 
-            month: 'short', 
-            day: 'numeric' 
-          }).toUpperCase(),
-          time: new Date(event.event_date || event.date_time_local).toLocaleTimeString('en-US', { 
-            hour: 'numeric', 
-            minute: '2-digit',
-            hour12: true 
-          }),
-          venue: event.venue?.name || 'Unknown Venue',
-          location: `${event.venue?.city || 'Unknown City'}, ${event.venue?.state || 'Unknown State'}`
-        }));
+        const transformedEvents: Event[] = response.data.events.map((event: any) => {
+          const eventDateTime = event.occurs_at_local || event.occurs_at || event.date_time_local;
+          const venueAddress = event.venue?.address || {};
+
+          // Debug first event to verify venue data extraction
+          if (event === response.data.events[0]) {
+            console.log('🏟️ [Venue Debug] Raw venue data:', event.venue);
+            console.log('📍 [Venue Debug] Extracted city:', venueAddress.locality || venueAddress.city);
+            console.log('📍 [Venue Debug] Extracted state:', venueAddress.region || venueAddress.state);
+            console.log('📍 [Venue Debug] Final location:', event.venue?.location);
+          }
+
+          return {
+            id: event.id,
+            name: event.name,
+            date_time_local: eventDateTime,
+            venue: {
+              id: event.venue?.id || 0,
+              name: event.venue?.name || 'Unknown Venue',
+              address: venueAddress.street_address || venueAddress.extended_address || '',
+              city: venueAddress.locality || venueAddress.city || 'Unknown City',
+              state_province: venueAddress.region || venueAddress.state || 'Unknown State',
+              country: venueAddress.country_code || 'Unknown Country',
+              postal_code: venueAddress.postal_code || '',
+              latitude: venueAddress.latitude,
+              longitude: venueAddress.longitude
+            },
+            category: {
+              id: event.category?.id || 0,
+              name: event.category?.name || 'Unknown Category',
+              parent_id: event.category?.parent?.id
+            },
+            performers: (event.performances || []).map((performance: any) => ({
+              id: performance.performer?.id || 0,
+              name: performance.performer?.name || 'Unknown Performer',
+              category: {
+                id: performance.performer?.category?.id || 0,
+                name: performance.performer?.category?.name || 'Unknown',
+                parent_id: performance.performer?.category?.parent?.id
+              },
+              primary: performance.primary || false,
+              home_team: performance.home_team,
+              away_team: performance.away_team
+            })),
+            min_ticket_price: event.min_ticket_price,
+            max_ticket_price: event.max_ticket_price,
+            url: event.url || `/events/${event.id}`,
+            // Simplified fields for backward compatibility
+            date: eventDateTime ? new Date(eventDateTime).toLocaleDateString('en-US', {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric'
+            }).toUpperCase() : 'Unknown Date',
+            time: eventDateTime ? new Date(eventDateTime).toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            }) : 'Unknown Time',
+            location: event.venue?.location || `${venueAddress.locality || 'Unknown City'}, ${venueAddress.region || 'Unknown State'}`
+          };
+        });
         
         setEvents(transformedEvents);
       } catch (err: any) {

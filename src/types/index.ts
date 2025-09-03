@@ -9,6 +9,10 @@ export interface Event {
   min_ticket_price?: number;
   max_ticket_price?: number;
   url: string;
+  // Simplified fields for backward compatibility (derived from above fields)
+  date?: string;
+  time?: string;
+  location?: string;
 }
 
 export interface Venue {
