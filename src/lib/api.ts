@@ -82,6 +82,26 @@ export const categoriesApi = {
     const response = await api.get('/categories/popular');
     return response.data;
   },
+
+
+
+  // Get events for a specific category
+  getCategoryEvents: async (id: string | number, page = 1, limit = 20, filters?: any) => {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
+    
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, value.toString());
+        }
+      });
+    }
+
+    const response = await api.get(`/categories/${id}/events?${params.toString()}`);
+    return response.data;
+  },
 };
 
 export default api;

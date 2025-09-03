@@ -23,12 +23,12 @@ export default function Footer() {
           <div>
             <h4 className="text-white font-semibold text-sm mb-3">Quick Links</h4>
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <a href="/category/concerts" className="text-gray-300 hover:text-white">Concerts</a>
-              <a href="/category/sports" className="text-gray-300 hover:text-white">Sports</a>
-              <a href="/category/theatre" className="text-gray-300 hover:text-white">Theatre</a>
+              <a href="/about" className="text-gray-300 hover:text-white">About Us</a>
+              <a href="/contact" className="text-gray-300 hover:text-white">Contact</a>
               <a href="/faq" className="text-gray-300 hover:text-white">FAQ</a>
               <a href="/privacy" className="text-gray-300 hover:text-white">Privacy</a>
               <a href="/terms" className="text-gray-300 hover:text-white">Terms</a>
+              <a href="/help" className="text-gray-300 hover:text-white">Help Center</a>
             </div>
           </div>
 

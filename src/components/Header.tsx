@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import React from 'react';
 import {
   MagnifyingGlassIcon,
   Bars3Icon,
@@ -13,16 +14,101 @@ import {
   ShoppingCartIcon,
   InformationCircleIcon,
   MapPinIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline';
 import { useLocation } from '@/contexts/LocationContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCategories } from '@/contexts/CategoryContext';
+
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  parent?: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+  children?: Category[];
+}
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
   const { location, loading, error, formatLocation } = useLocation();
   const { user, profile, signOut } = useAuth();
+  // Use cached categories from context
+  const { categories, loading: categoriesLoading } = useCategories();
+
+  const toggleCategory = (categoryId: number) => {
+    const newExpanded = new Set(expandedCategories);
+    if (newExpanded.has(categoryId)) {
+      newExpanded.delete(categoryId);
+    } else {
+      newExpanded.add(categoryId);
+    }
+    setExpandedCategories(newExpanded);
+  };
+
+  // Category Tree Item Component for navigation
+  const CategoryTreeItem: React.FC<{
+    category: Category;
+    isExpanded: boolean;
+    onToggle: () => void;
+    level: number;
+    onMenuClose: () => void;
+  }> = ({ category, isExpanded, onToggle, level, onMenuClose }) => {
+    const hasChildren = category.children && category.children.length > 0;
+    const indentClass = level > 0 ? `ml-${level * 4}` : '';
+
+    return (
+      <div>
+        <Link
+          href={`/category/${category.id}`}
+          className={`flex items-center text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors ${indentClass}`}
+          onClick={onMenuClose}
+        >
+          {hasChildren ? (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onToggle();
+              }}
+              className="mr-2 focus:outline-none"
+            >
+              {isExpanded ? (
+                <ChevronDownIcon className="h-3 w-3" />
+              ) : (
+                <ChevronDownIcon className="h-3 w-3 rotate-[-90deg]" />
+              )}
+            </button>
+          ) : (
+            <div className="w-5" />
+          )}
+          <span className="truncate">{category.name}</span>
+        </Link>
+
+        {/* Render children if expanded */}
+        {hasChildren && isExpanded && (
+          <div>
+            {category.children!.slice(0, 5).map((childCategory: Category) => (
+              <Link
+                key={childCategory.id}
+                href={`/category/${childCategory.id}`}
+                className={`flex items-center text-gray-400 hover:text-white py-1 text-sm transition-colors ml-6`}
+                onClick={onMenuClose}
+              >
+                <span className="truncate">{childCategory.name}</span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <>
@@ -225,32 +311,30 @@ export default function Header() {
 
             {/* Main Navigation */}
             <div className="mb-8">
-              <nav className="space-y-2">
-                <Link href="/category/concerts" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors" onClick={() => setIsMenuOpen(false)}>
-                  Concerts
-                </Link>
-                <Link href="/category/theatre" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors" onClick={() => setIsMenuOpen(false)}>
-                  Theatre
-                </Link>
-                <Link href="/category/sports" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors" onClick={() => setIsMenuOpen(false)}>
-                  Sports
-                </Link>
-                <Link href="/category/sports" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors ml-4" onClick={() => setIsMenuOpen(false)}>
-                  NFL Football
-                </Link>
-                <Link href="/category/sports" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors ml-4" onClick={() => setIsMenuOpen(false)}>
-                  MLB Baseball
-                </Link>
-                <Link href="/category/sports" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors ml-4" onClick={() => setIsMenuOpen(false)}>
-                  NBA Basketball
-                </Link>
-                <Link href="/category/sports" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors ml-4" onClick={() => setIsMenuOpen(false)}>
-                  NHL Hockey
-                </Link>
-                <Link href="/category/sports" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors ml-4" onClick={() => setIsMenuOpen(false)}>
-                  MLS Soccer
-                </Link>
-              </nav>
+              {categoriesLoading ? (
+                <div className="space-y-2">
+                  <div className="animate-pulse">
+                    <div className="h-4 bg-gray-700 rounded w-20 mb-2"></div>
+                    <div className="h-4 bg-gray-700 rounded w-16 ml-4 mb-2"></div>
+                    <div className="h-4 bg-gray-700 rounded w-18 ml-4 mb-2"></div>
+                  </div>
+                </div>
+              ) : categories.length > 0 ? (
+                <nav className="space-y-1">
+                  {categories.map((category) => (
+                    <CategoryTreeItem
+                      key={category.id}
+                      category={category}
+                      isExpanded={expandedCategories.has(category.id)}
+                      onToggle={() => toggleCategory(category.id)}
+                      level={0}
+                      onMenuClose={() => setIsMenuOpen(false)}
+                    />
+                  ))}
+                </nav>
+              ) : (
+                <div className="text-gray-400 text-sm">Categories unavailable</div>
+              )}
             </div>
 
             {/* Account Section */}

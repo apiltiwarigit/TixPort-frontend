@@ -70,9 +70,8 @@ const PUBLIC_ROUTES = [
   '/',
   '/about',
   '/contact',
-  '/category/concerts',
-  '/category/sports',
-  '/category/theatre'
+  // Category routes are public by default - no need to list them all
+  '/category' // This covers all /category/* routes
 ];
 
 // Helper function to determine route type

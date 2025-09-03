@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import {
   GlobeAltIcon,
   UserIcon,
@@ -14,7 +15,7 @@ import {
   ChevronRightIcon
 } from '@heroicons/react/24/outline';
 import { useLocation } from '@/contexts/LocationContext';
-import { categoriesApi } from '@/lib/api';
+import { useCategories } from '@/contexts/CategoryContext';
 
 interface Category {
   id: number;
@@ -30,68 +31,49 @@ interface Category {
 
 export default function Sidebar() {
   const { location, loading, error, formatLocation } = useLocation();
-  // Categories state - will be cached in Supabase later
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
-  const [categoriesError, setCategoriesError] = useState<string | null>(null);
+  const pathname = usePathname();
+  // Use cached categories from context
+  const { categories, loading: categoriesLoading, error: categoriesError, refetchCategories } = useCategories();
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
+  const lastPathname = useRef<string>('');
 
+  // Auto-expand categories based on current URL when categories load or URL changes
   useEffect(() => {
-    fetchCategories();
-  }, []);
+    if (categories.length > 0 && pathname !== lastPathname.current) {
+      lastPathname.current = pathname;
 
-  const fetchCategories = async () => {
-    try {
-      setCategoriesLoading(true);
-      setCategoriesError(null);
+      const currentCategoryId = getCurrentCategoryId();
+      if (currentCategoryId) {
+        const pathToExpand = findCategoryPath(currentCategoryId, categories);
+        if (pathToExpand.length > 0) {
+          // Get parent categories that need to be expanded
+          const parentsToExpand = pathToExpand.filter(catId => catId !== currentCategoryId);
 
-      const response = await categoriesApi.getCategories();
+          // Check if current category has children and should be expanded
+          const currentCategory = findCategoryById(currentCategoryId, categories);
+          const shouldExpandCurrent = currentCategory && currentCategory.children && currentCategory.children.length > 0;
 
-      // Transform categories into tree structure
-      const transformedCategories = transformCategoriesToTree(response.data || []);
-      setCategories(transformedCategories);
-    } catch (err: any) {
-      console.error('Error fetching categories:', err);
-      setCategoriesError('Unable to load categories. Categories will be cached in Supabase soon.');
-      setCategories([]); // Clear categories on error
-    } finally {
-      setCategoriesLoading(false);
-    }
-  };
+          // Add parent categories and current category (if it has children) to expanded set
+          setExpandedCategories(prevExpanded => {
+            const newExpanded = new Set(prevExpanded); // Keep existing expansions
+            parentsToExpand.forEach(catId => {
+              newExpanded.add(catId);
+            });
 
-  const transformCategoriesToTree = (categories: any[]): Category[] => {
-    const categoryMap = new Map<number, Category>();
-    const rootCategories: Category[] = [];
+            // Expand current category if it has children
+            if (shouldExpandCurrent) {
+              newExpanded.add(currentCategoryId);
+            }
 
-    // First pass: create all category objects
-    categories.forEach(cat => {
-      const category: Category = {
-        id: cat.id,
-        name: cat.name,
-        slug: cat.slug || cat.name.toLowerCase().replace(/\s+/g, '-'),
-        parent: cat.parent,
-        children: []
-      };
-      categoryMap.set(cat.id, category);
-    });
-
-    // Second pass: build tree structure
-    categories.forEach(cat => {
-      const category = categoryMap.get(cat.id)!;
-      if (cat.parent && cat.parent.id) {
-        // This is a child category
-        const parentCategory = categoryMap.get(cat.parent.id);
-        if (parentCategory) {
-          parentCategory.children!.push(category);
+            console.log(`🌲 Auto-expanded categories for path to ${currentCategoryId}:`, Array.from(newExpanded));
+            return newExpanded;
+          });
         }
-      } else {
-        // This is a root category
-        rootCategories.push(category);
       }
-    });
+    }
+  }, [categories, pathname]); // Only depend on categories and pathname
 
-    return rootCategories;
-  };
+
 
   const toggleCategory = (categoryId: number) => {
     const newExpanded = new Set(expandedCategories);
@@ -104,15 +86,60 @@ export default function Sidebar() {
   };
 
   const generateCategoryLink = (category: Category): string => {
-    // Create dynamic links based on category structure using new dynamic routes
-    if (category.parent) {
-      // Child category - use dynamic parent structure
-      const parentSlug = category.parent.slug || category.parent.name.toLowerCase().replace(/\s+/g, '-');
-      return `/category/${parentSlug}`;
-    } else {
-      // Root category - use dynamic category route
-      return `/category/${category.slug}`;
+    // Use category ID for the new ID-based routing system
+    return `/category/${category.id}`;
+  };
+
+  // Find the path from root to a specific category (returns array of category IDs)
+  const findCategoryPath = (targetId: number, categories: Category[], currentPath: number[] = []): number[] => {
+    for (const category of categories) {
+      const newPath = [...currentPath, category.id];
+
+      if (category.id === targetId) {
+        return newPath;
+      }
+
+      if (category.children && category.children.length > 0) {
+        const childPath = findCategoryPath(targetId, category.children, newPath);
+        if (childPath.length > 0) {
+          return childPath;
+        }
+      }
     }
+    return [];
+  };
+
+  // Find a category by ID in the categories tree
+  const findCategoryById = (targetId: number, categories: Category[]): Category | null => {
+    for (const category of categories) {
+      if (category.id === targetId) {
+        return category;
+      }
+
+      if (category.children && category.children.length > 0) {
+        const found = findCategoryById(targetId, category.children);
+        if (found) {
+          return found;
+        }
+      }
+    }
+    return null;
+  };
+
+  // Get current category ID from URL to highlight active category
+  const getCurrentCategoryId = (): number | null => {
+    const path = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
+    const match = path.match(/\/category\/(\d+)/);
+    return match ? parseInt(match[1]) : null;
+  };
+
+  // Check if a category is in the current active path
+  const isInActivePath = (categoryId: number): boolean => {
+    const currentCategoryId = getCurrentCategoryId();
+    if (!currentCategoryId) return false;
+    
+    const activePath = findCategoryPath(currentCategoryId, categories);
+    return activePath.includes(categoryId);
   };
 
   // Tree Item Component for rendering categories
@@ -124,39 +151,51 @@ export default function Sidebar() {
     level?: number;
   }> = ({ category, isExpanded, onToggle, generateLink, level = 0 }) => {
     const hasChildren = category.children && category.children.length > 0;
-    const indentClass = level > 0 ? `ml-${level * 4}` : '';
+    const currentCategoryId = getCurrentCategoryId();
+    const isActive = currentCategoryId === category.id;
+    const isInPath = isInActivePath(category.id);
+    // Use static Tailwind classes to avoid dynamic class issues
+    const indentClasses = ['','ml-4','ml-8','ml-12','ml-16','ml-20','ml-24'];
+    const indentClass = indentClasses[Math.min(level, indentClasses.length - 1)];
 
     return (
       <div>
-        <Link
-          href={generateCategoryLink(category)}
-          className={`flex items-center text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors ${indentClass}`}
-        >
+        {/* Category item with separate expand button and link */}
+        <div className={`flex items-center py-1 text-sm ${indentClass} group`}>
           {hasChildren ? (
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onToggle();
-              }}
-              className="mr-2 focus:outline-none"
+              onClick={onToggle}
+              className="mr-2 p-1 hover:bg-gray-700 rounded focus:outline-none focus:ring-1 focus:ring-green-500 transition-all duration-200"
+              aria-label={isExpanded ? `Collapse ${category.name}` : `Expand ${category.name}`}
             >
               {isExpanded ? (
-                <ChevronDownIcon className="h-3 w-3" />
+                <ChevronDownIcon className="h-3 w-3 text-gray-400 group-hover:text-white transition-colors" />
               ) : (
-                <ChevronRightIcon className="h-3 w-3" />
+                <ChevronRightIcon className="h-3 w-3 text-gray-400 group-hover:text-white transition-colors" />
               )}
             </button>
           ) : (
             <div className="w-5" /> // Spacer for alignment
           )}
-          <span className="truncate">{category.name}</span>
-        </Link>
+          
+          <Link
+            href={generateCategoryLink(category)}
+            className={`flex-1 px-2 py-1 rounded transition-all duration-200 truncate font-medium ${
+              isActive
+                ? 'text-white bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg shadow-blue-500/25'
+                : isInPath
+                ? 'text-white bg-blue-500/20 border border-blue-400/50'
+                : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+            }`}
+          >
+            {category.name}
+          </Link>
+        </div>
 
-        {/* Render children if expanded */}
+        {/* Render children if expanded with animation */}
         {hasChildren && isExpanded && (
-          <div>
-            {category.children!.map((childCategory) => (
+          <div className="ml-2 border-l border-gray-700/50 pl-2 mt-1">
+            {category.children!.map((childCategory: Category) => (
               <CategoryTreeItem
                 key={childCategory.id}
                 category={childCategory}
@@ -232,7 +271,7 @@ export default function Sidebar() {
                   {categoriesError}
                 </p>
                 <button
-                  onClick={fetchCategories}
+                  onClick={refetchCategories}
                   className="mt-2 bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded transition-colors"
                   disabled={categoriesLoading}
                 >
