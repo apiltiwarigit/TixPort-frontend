@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { categoriesApi, eventsApi } from '@/lib/api';
 import Header from '@/components/Header';
@@ -27,8 +27,14 @@ interface CategoryPageData {
 
 export default function CategoryPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const categoryId = params.id as string;
   const { location } = useLocation();
+
+  // Get state from URL parameters
+  const currentPage = parseInt(searchParams.get('page') || '1');
+  const locationBased = searchParams.get('nearby') === 'true';
 
   const [data, setData] = useState<CategoryPageData>({
     category: null,
@@ -43,8 +49,40 @@ export default function CategoryPage() {
     }
   });
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [locationBased, setLocationBased] = useState(false);
+  // Function to update URL parameters
+  const updateUrlParams = (updates: { page?: number; nearby?: boolean }) => {
+    const newSearchParams = new URLSearchParams(searchParams.toString());
+
+    if (updates.page !== undefined) {
+      if (updates.page === 1) {
+        newSearchParams.delete('page');
+      } else {
+        newSearchParams.set('page', updates.page.toString());
+      }
+    }
+
+    if (updates.nearby !== undefined) {
+      if (updates.nearby) {
+        newSearchParams.set('nearby', 'true');
+      } else {
+        newSearchParams.delete('nearby');
+      }
+    }
+
+    const newUrl = `${window.location.pathname}${newSearchParams.toString() ? '?' + newSearchParams.toString() : ''}`;
+    router.push(newUrl, { scroll: false });
+  };
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    updateUrlParams({ page });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Handle location toggle
+  const handleLocationToggle = () => {
+    updateUrlParams({ nearby: !locationBased, page: 1 }); // Reset to page 1 when toggling
+  };
 
   useEffect(() => {
     loadCategoryData();
@@ -202,12 +240,6 @@ export default function CategoryPage() {
     }
   };
 
-  const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= data.pagination.total_pages) {
-      setCurrentPage(page);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
 
 
 
@@ -363,7 +395,7 @@ export default function CategoryPage() {
                 </div>
                 <h3 className="text-white font-semibold mb-2 text-xl">Error Loading Events</h3>
                 <p className="text-gray-400">{data.error}</p>
-                <button 
+                <button
                   onClick={loadCategoryData}
                   className="mt-4 btn-primary"
                 >
@@ -413,7 +445,7 @@ export default function CategoryPage() {
                   </p>
                 </div>
               </div>
-              
+
               {/* Enhanced Stats */}
               <div className="flex flex-wrap gap-3 text-sm">
                 {/* Total Count */}
@@ -437,15 +469,13 @@ export default function CategoryPage() {
                 <div className="bg-gray-800/50 px-3 py-2 rounded-lg flex items-center">
                   <span className="text-gray-400 mr-2">Nearby:</span>
                   <button
-                    onClick={() => setLocationBased(!locationBased)}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${
-                      locationBased ? 'bg-green-600' : 'bg-gray-600'
-                    }`}
+                    onClick={handleLocationToggle}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${locationBased ? 'bg-green-600' : 'bg-gray-600'
+                      }`}
                   >
                     <span
-                      className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                        locationBased ? 'translate-x-5' : 'translate-x-1'
-                      }`}
+                      className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${locationBased ? 'translate-x-5' : 'translate-x-1'
+                        }`}
                     />
                   </button>
 
