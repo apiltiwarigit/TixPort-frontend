@@ -29,6 +29,11 @@ interface Event {
   image: string
   price_min: number
   price_max: number
+  requirements?: {
+    inclusive_pricing?: boolean
+    face_value_display?: boolean
+    seat_number_display?: boolean
+  }
 }
 
 interface SeatmapData {
@@ -49,14 +54,18 @@ interface TicketGroup {
   section: string
   row: string
   quantity: number
+  available_quantity?: number
   wholesale_price: number
   retail_price: number
+  retail_price_inclusive?: number
   format: string
   in_hand: boolean
   eticket: boolean
   public_notes?: string
   tevo_section_name: string
   price: number
+  type?: string
+  splits?: number[]
 }
 
 interface SelectedTicket {
@@ -88,6 +97,8 @@ export default function EventBuyPage() {
   const [currentStep, setCurrentStep] = useState<'select' | 'review' | 'checkout'>('select')
   const [dataFetched, setDataFetched] = useState(false)
   const fetchedRef = useRef<string | null>(null)
+  const lastChosenSectionRef = useRef<string | null>(null)
+  const lastMapSelectionRef = useRef<string[]>([])
 
   // Fetch event details
   useEffect(() => {
@@ -118,6 +129,7 @@ export default function EventBuyPage() {
             image: raw.image || (raw.images && raw.images[0]?.url) || '',
             price_min: raw.min_ticket_price || raw.price_min || 0,
             price_max: raw.max_ticket_price || raw.price_max || 0,
+            requirements: raw.requirements || {}
           }
           
           console.log('Normalized event data:', normalized) // Debug log
@@ -184,25 +196,38 @@ export default function EventBuyPage() {
           const ticketGroupsData = await ticketGroupsResponse.json()
           
           // Transform and deduplicate ticket groups by section
-          const allGroups = (ticketGroupsData.data.ticketGroups || []).map((group: any) => ({
-            ...group,
-            tevo_section_name: group.tevo_section_name || group.section,
-            price: group.retail_price || group.wholesale_price || group.price || 0
-          }))
+          // Exclude parking tickets from seatmap data
+          const priceField = event?.requirements?.inclusive_pricing ? 'retail_price_inclusive' : 'retail_price'
+          const allGroups = (ticketGroupsData.data.ticketGroups || [])
+            .filter((group: any) => group.type !== 'parking') // Exclude parking tickets
+            .map((group: any) => ({
+              ...group,
+              tevo_section_name: group.tevo_section_name || group.section,
+              price: group[priceField] || group.retail_price || group.wholesale_price || group.price || 0
+            }))
 
           // Create a map to deduplicate by section, keeping the best price
           const groupMap = new Map()
           allGroups.forEach((group: any) => {
-            const key = `${group.tevo_section_name}`
+            const key = `${group.tevo_section_name}`.toLowerCase() // Normalize case for consistent matching
             const existing = groupMap.get(key)
             
             if (!existing || group.price < existing.price) {
-              groupMap.set(key, group)
+              groupMap.set(key, {
+                ...group,
+                tevo_section_name: group.tevo_section_name || group.section // Ensure tevo_section_name is set
+              })
             }
           })
 
           const transformedGroups = Array.from(groupMap.values())
           console.log(`🔄 Deduplication: ${allGroups.length} → ${transformedGroups.length} ticket groups`)
+          console.log(`📍 Sample tevo_section_name mapping:`, transformedGroups.slice(0, 3).map(g => ({
+            section: g.section,
+            tevo_section_name: g.tevo_section_name,
+            type: g.type,
+            price: g.price
+          })))
           setTicketGroups(transformedGroups)
           
           // Check if ticket groups response contains configuration ID (fallback)
@@ -240,42 +265,74 @@ export default function EventBuyPage() {
     fetchSeatmapData()
   }, [eventId, event, dataFetched, seatmapLoading])
 
-  // Handle section selection from seatmap
+  // Handle section selection from seatmap - enforce persistent single-selection behavior
   const handleSectionSelection = useCallback((sections: string[]) => {
-    setSelectedSections(sections)
+    const incoming = sections.map(s => s.toLowerCase())
+    const prevMap = lastMapSelectionRef.current
 
-    if (sections.length > 0) {
-      // Find tickets for selected sections
+    // Determine changes
+    const newlyAdded = incoming.find(s => !prevMap.includes(s)) || null
+    const removed = prevMap.find(s => !incoming.includes(s)) || null
+
+    console.log('🧭 Map selection change', { prevMap, incoming, newlyAdded, removed, lastChosen: lastChosenSectionRef.current })
+
+    if (newlyAdded) {
+      // New selection: adopt it and replace panel data
+      const picked = newlyAdded
+      lastChosenSectionRef.current = picked
+      setSelectedSections([picked])
+
       const selectedTicketGroups = ticketGroups.filter(group =>
-        sections.some(section => section.toLowerCase() === group.section.toLowerCase())
+        picked === (group.tevo_section_name || group.section).toLowerCase()
       )
-
-      if (selectedTicketGroups.length > 0) {
-        // Show all available tickets for the selected sections
-        setAvailableTicketsForSection(selectedTicketGroups)
-
-        // Don't auto-select anymore - let user choose
-        // Keep existing selected tickets if they exist
+      setAvailableTicketsForSection(selectedTicketGroups)
+      setSelectedTickets([])
+    } else if (removed) {
+      // Deselection happened. If user deselected the last chosen, clear panel entirely
+      if (removed === lastChosenSectionRef.current) {
+        lastChosenSectionRef.current = null
+        setSelectedSections([])
+        setAvailableTicketsForSection([])
+        setSelectedTickets([])
+      } else {
+        // Ignore removals of older selections; keep showing last chosen
+        if (lastChosenSectionRef.current) {
+          setSelectedSections([lastChosenSectionRef.current])
+        } else {
+          setSelectedSections([])
+        }
       }
     } else {
-      setAvailableTicketsForSection([])
-      // Don't clear selected tickets when deselecting sections
+      // No diff (rare), keep current state consistent with lastChosen
+      if (lastChosenSectionRef.current) {
+        setSelectedSections([lastChosenSectionRef.current])
+      } else {
+        setSelectedSections([])
+        setAvailableTicketsForSection([])
+        setSelectedTickets([])
+      }
     }
+
+    lastMapSelectionRef.current = incoming
   }, [ticketGroups])
 
-  // Add ticket to selected list
+  // Add ticket to selected list (replace mode for single selection)
   const addTicketToSelection = (ticketGroup: TicketGroup) => {
+    const priceField = event?.requirements?.inclusive_pricing ? 'retail_price_inclusive' : 'retail_price'
+    const price = ticketGroup[priceField] || ticketGroup.retail_price
+
     const newSelectedTicket: SelectedTicket = {
       ticketGroupId: ticketGroup.id,
       section: ticketGroup.section,
       row: ticketGroup.row,
       quantity: 1,
-      pricePerTicket: ticketGroup.retail_price,
-      totalPrice: ticketGroup.retail_price,
+      pricePerTicket: price,
+      totalPrice: price,
       format: ticketGroup.format
     }
 
-    setSelectedTickets(prev => [...prev, newSelectedTicket])
+    // Replace any existing tickets with this new selection (single selection mode)
+    setSelectedTickets([newSelectedTicket])
   }
 
   // Remove ticket from selected list
@@ -299,11 +356,23 @@ export default function EventBuyPage() {
 
   // Memoize ticket groups for TicketMap to prevent unnecessary re-renders
   const memoizedTicketGroups = useMemo(() => {
-    return ticketGroups.map(group => ({
-      tevo_section_name: group.tevo_section_name || group.section,
-      retail_price: parseFloat(String(group.retail_price || group.wholesale_price || group.price || 0))
+    const priceField = event?.requirements?.inclusive_pricing ? 'retail_price_inclusive' : 'retail_price'
+    const groups = ticketGroups.map(group => ({
+      tevo_section_name: (group.tevo_section_name || group.section).toLowerCase(), // Normalize for consistent matching
+      retail_price: parseFloat(String(group[priceField] || group.retail_price || group.wholesale_price || group.price || 0))
     }))
-  }, [ticketGroups])
+    
+    if (groups.length > 0) {
+      console.log(`🗺️ Seatmap ticket groups prepared:`, {
+        count: groups.length,
+        priceField: priceField,
+        inclusivePricing: event?.requirements?.inclusive_pricing,
+        sample: groups.slice(0, 3)
+      })
+    }
+    
+    return groups
+  }, [ticketGroups, event?.requirements?.inclusive_pricing])
 
   // Handle checkout
   const handleCheckout = () => {
@@ -456,12 +525,12 @@ export default function EventBuyPage() {
                     <div className="flex items-center space-x-2">
                       <CheckCircleIcon className="h-5 w-5 text-green-400" />
                       <span className="text-sm text-gray-300 truncate">
-                        Selected: {selectedSections.join(', ')}
+                        Selected Section: {selectedSections[0]}
                       </span>
                     </div>
                   ) : (
                     <div className="text-sm text-gray-500">
-                      Click seats to select
+                      Click a section to select
                     </div>
                   )}
                 </div>
@@ -532,7 +601,7 @@ export default function EventBuyPage() {
                                  key={section}
                                  onClick={() => handleSectionSelection([section])}
                                  className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${
-                                   selectedSections.includes(section)
+                                   selectedSections.length > 0 && selectedSections[0] === section
                                      ? 'bg-purple-600 text-white'
                                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                                  }`}
@@ -611,7 +680,7 @@ export default function EventBuyPage() {
                                 disabled={selectedTickets.some(ticket => ticket.ticketGroupId === ticketGroup.id)}
                                 className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition-colors"
                               >
-                                {selectedTickets.some(ticket => ticket.ticketGroupId === ticketGroup.id) ? 'Added to Cart' : 'Add to Cart'}
+                                {selectedTickets.some(ticket => ticket.ticketGroupId === ticketGroup.id) ? 'Selected' : 'Select Tickets'}
                               </button>
                             </div>
                           ))}
@@ -619,10 +688,10 @@ export default function EventBuyPage() {
                       </div>
                     )}
 
-                    {/* Selected Tickets */}
+                    {/* Selected Ticket */}
                     {selectedTickets.length > 0 && (
                       <div className="space-y-4">
-                        <h4 className="font-medium text-gray-300">Selected Tickets</h4>
+                        <h4 className="font-medium text-gray-300">Selected Ticket</h4>
                       {selectedTickets.map((ticket) => (
                         <div key={ticket.ticketGroupId} className="bg-gray-700/50 rounded-lg p-4">
                           <div className="flex justify-between items-start mb-2">
