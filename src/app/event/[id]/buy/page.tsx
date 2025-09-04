@@ -19,6 +19,7 @@ import Header from '@/components/Header'
 import StripeProvider from '@/components/StripeProvider'
 import CheckoutForm from '@/components/CheckoutForm'
 import Link from 'next/link'
+import { buildSeatmapTicketGroups, normalizeSectionName, type TevoListing } from '@/lib/seatmapUtils'
 
 interface Event {
   id: string
@@ -199,7 +200,7 @@ export default function EventBuyPage() {
         if (ticketGroupsResponse.ok) {
           const ticketGroupsData = await ticketGroupsResponse.json()
           
-          // Transform and deduplicate ticket groups by section
+          // Transform ticket groups - DO NOT deduplicate by section
           // Exclude parking tickets from seatmap data
           const priceField = event?.requirements?.inclusive_pricing ? 'retail_price_inclusive' : 'retail_price'
           const allGroups = (ticketGroupsData.data.ticketGroups || [])
@@ -210,29 +211,14 @@ export default function EventBuyPage() {
               price: group[priceField] || group.retail_price || group.wholesale_price || group.price || 0
             }))
 
-          // Create a map to deduplicate by section, keeping the best price
-          const groupMap = new Map()
-          allGroups.forEach((group: any) => {
-            const key = `${group.tevo_section_name}`.toLowerCase() // Normalize case for consistent matching
-            const existing = groupMap.get(key)
-            
-            if (!existing || group.price < existing.price) {
-              groupMap.set(key, {
-                ...group,
-                tevo_section_name: group.tevo_section_name || group.section // Ensure tevo_section_name is set
-              })
-            }
-          })
-
-          const transformedGroups = Array.from(groupMap.values())
-          console.log(`🔄 Deduplication: ${allGroups.length} → ${transformedGroups.length} ticket groups`)
-          console.log(`📍 Sample tevo_section_name mapping:`, transformedGroups.slice(0, 3).map(g => ({
+          console.log(`📊 Processing ${allGroups.length} ticket groups (no deduplication)`)
+          console.log(`📍 Sample tevo_section_name mapping:`, allGroups.slice(0, 3).map((g: any) => ({
             section: g.section,
             tevo_section_name: g.tevo_section_name,
             type: g.type,
             price: g.price
           })))
-          setTicketGroups(transformedGroups)
+          setTicketGroups(allGroups)
           
           // Check if ticket groups response contains configuration ID (fallback)
           if (ticketGroupsData.data.configurationId && seatmapData && !seatmapData.configurationId) {
@@ -247,7 +233,7 @@ export default function EventBuyPage() {
             }
           }
           
-          console.log(`✅ Loaded ${transformedGroups.length} ticket groups for event ${eventId}`)
+          console.log(`✅ Loaded ${allGroups.length} ticket groups for event ${eventId}`)
         } else if (ticketGroupsResponse.status === 404) {
           console.log('⚠️ No ticket groups found for this event')
           setTicketGroups([])
@@ -287,7 +273,7 @@ export default function EventBuyPage() {
       setSelectedSections([picked])
 
       const selectedTicketGroups = ticketGroups.filter(group =>
-        picked === (group.tevo_section_name || group.section).toLowerCase()
+        picked === normalizeSectionName(group.tevo_section_name || group.section)
       )
       setAvailableTicketsForSection(selectedTicketGroups)
       setSelectedTickets([])
@@ -360,17 +346,27 @@ export default function EventBuyPage() {
 
   // Memoize ticket groups for TicketMap to prevent unnecessary re-renders
   const memoizedTicketGroups = useMemo(() => {
-    const priceField = event?.requirements?.inclusive_pricing ? 'retail_price_inclusive' : 'retail_price'
-    const groups = ticketGroups.map(group => ({
-      tevo_section_name: (group.tevo_section_name || group.section).toLowerCase(), // Normalize for consistent matching
-      retail_price: parseFloat(String(group[priceField] || group.retail_price || group.wholesale_price || group.price || 0))
+    const useInclusive = event?.requirements?.inclusive_pricing || false
+    
+    // Convert ticket groups to TevoListing format
+    const listings: TevoListing[] = ticketGroups.map(group => ({
+      id: group.id,
+      type: group.type || 'event',
+      tevo_section_name: group.tevo_section_name || group.section,
+      retail_price: group.retail_price,
+      retail_price_inclusive: group.retail_price_inclusive,
+      available_quantity: group.available_quantity,
+      section: group.section,
+      row: group.row
     }))
+    
+    // Use the helper function to build seat-map ticket groups
+    const groups = buildSeatmapTicketGroups(listings, useInclusive)
     
     if (groups.length > 0) {
       console.log(`🗺️ Seatmap ticket groups prepared:`, {
         count: groups.length,
-        priceField: priceField,
-        inclusivePricing: event?.requirements?.inclusive_pricing,
+        useInclusive: useInclusive,
         sample: groups.slice(0, 3)
       })
     }
