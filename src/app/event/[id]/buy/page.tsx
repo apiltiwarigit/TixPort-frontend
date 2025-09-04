@@ -403,28 +403,34 @@ export default function EventBuyPage() {
           {/* Seatmap Section */}
           <div className="lg:col-span-2">
             <div className="bg-gray-800/50 rounded-lg border border-gray-700">
-              <div className="p-6 border-b border-gray-700">
+              <div className="h-24 sm:h-20 p-6 border-b border-gray-700 flex flex-col justify-center">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <MapIcon className="h-6 w-6 text-purple-400" />
                     <h2 className="text-xl font-bold text-white">Select Your Seats</h2>
                   </div>
-                  
+
                   {seatmapData && (
                     <div className="text-sm text-gray-400">
                       {seatmapData.venueName}
                     </div>
                   )}
                 </div>
-                
-                {selectedSections.length > 0 && (
-                  <div className="mt-4 flex items-center space-x-2">
-                    <CheckCircleIcon className="h-5 w-5 text-green-400" />
-                    <span className="text-sm text-gray-300">
-                      Selected: {selectedSections.join(', ')}
-                    </span>
-                  </div>
-                )}
+
+                <div className="flex items-center justify-between mt-2">
+                  {selectedSections.length > 0 ? (
+                    <div className="flex items-center space-x-2">
+                      <CheckCircleIcon className="h-5 w-5 text-green-400" />
+                      <span className="text-sm text-gray-300 truncate">
+                        Selected: {selectedSections.join(', ')}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-500">
+                      Click seats to select
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="relative">
