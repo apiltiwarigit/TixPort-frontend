@@ -438,9 +438,9 @@ export default function EventBuyPage() {
                   </div>
                 ) : showSeatmap && seatmapData?.venueId && seatmapData?.configurationId && ticketGroups.length > 0 ? (
                   <div
-                    className="h-96 w-full relative bg-white rounded overflow-hidden seatmap-container"
-                    style={{ 
-                      minHeight: '400px',
+                    className="h-[600px] w-full relative bg-gray-800 rounded overflow-hidden seatmap-container"
+                    style={{
+                      minHeight: '600px',
                       fontFamily: 'system-ui, -apple-system, sans-serif'
                     }}
                   >

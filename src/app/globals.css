@@ -332,15 +332,15 @@ body {
 
 /* Seatmap styling fixes */
 .seatmap-container text {
-  fill: #1f2937 !important;
+  fill: #e5e7eb !important;
   font-weight: 600 !important;
   font-size: 12px !important;
-  text-shadow: 0 0 3px rgba(255,255,255,0.8) !important;
+  text-shadow: 0 0 3px rgba(0,0,0,0.8) !important;
   font-family: system-ui, -apple-system, sans-serif !important;
 }
 
 .seatmap-container svg {
-  background: white !important;
+  background: #1f2937 !important;
   font-family: system-ui, -apple-system, sans-serif !important;
 }
 
@@ -356,12 +356,44 @@ body {
 
 /* Ensure seatmap text is always visible */
 .seatmap-container svg text {
-  fill: #000000 !important;
+  fill: #f9fafb !important;
   font-weight: bold !important;
   paint-order: stroke fill !important;
-  stroke: white !important;
+  stroke: #1f2937 !important;
   stroke-width: 3px !important;
   stroke-linejoin: round !important;
   text-shadow: none !important;
+}
+
+/* SeatMap controls styling - make them blend with dark theme */
+.seatmap-container div[style*="pointer-events: all"] {
+  border: unset !important;
+  background-color: unset !important;
+}
+
+/* Individual control buttons */
+.seatmap-container div[style*="pointer-events: all"] > div {
+  background-color: unset !important;
+  border-radius: unset !important;
+  margin: unset !important;
+}
+
+/* Dropdown controls */
+.seatmap-container div[style*="pointer-events: all"][style*="border: 2px solid lightgray"] {
+  border: unset !important;
+  border-radius: unset !important;
+  background-color: unset !important;
+}
+
+/* Dropdown children */
+.seatmap-container div[style*="pointer-events: all"] div[style*="position: relative"] > div,
+.seatmap-container div[style*="pointer-events: all"] div[style*="background-color: transparent"] {
+  border: unset !important;
+  background-color: unset !important;
+}
+
+/* SVG elements in controls */
+.seatmap-container div[style*="pointer-events: all"] svg {
+  background: unset !important;
 }
 
