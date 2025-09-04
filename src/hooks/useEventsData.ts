@@ -68,10 +68,12 @@ export function useEventsData({
         console.log('⏳ [useEventsData] Waiting for pending request for key:', cacheKey);
         try {
           const data = await pendingRequests.get(cacheKey);
-          setEvents(data);
-          setLoading(false);
-          setError(null);
-          return;
+          if (data) {
+            setEvents(data);
+            setLoading(false);
+            setError(null);
+            return;
+          }
         } catch (err) {
           console.error('❌ [useEventsData] Pending request failed:', err);
         }
