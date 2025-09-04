@@ -57,23 +57,29 @@ export default function CategoryPage() {
       let eventsResponse;
       let categoryInfo;
 
-      if (locationBased && categoryId !== 'all') {
-        // When location-based is enabled for specific categories, we need to get category info separately
-        try {
-          const categoryResponse = await categoriesApi.getCategoryEvents(categoryId, 1, 1);
-          if (categoryResponse.success && categoryResponse.data.events.length > 0) {
-            categoryInfo = categoryResponse.data.events[0].category;
+      if (locationBased) {
+        // When location-based is enabled, we need to get category info separately for specific categories
+        if (categoryId !== 'all') {
+          try {
+            const categoryResponse = await categoriesApi.getCategoryEvents(categoryId, 1, 1);
+            if (categoryResponse.success && categoryResponse.data.events.length > 0) {
+              categoryInfo = categoryResponse.data.events[0].category;
+            }
+          } catch (error) {
+            console.warn('Failed to get category info:', error);
           }
-        } catch (error) {
-          console.warn('Failed to get category info:', error);
         }
 
         // Load events with location-based filtering
         const filters: any = {
           only_with_available_tickets: true,
           within: 60, // 60 mile radius
-          category_id: categoryId // Always include category filter for specific categories
         };
+
+        // Only add category filter for specific categories, not for "all"
+        if (categoryId !== 'all') {
+          filters.category_id = categoryId;
+        }
 
         // Use IP-based geolocation for location-based filtering
         // Use the actual IP from location context if available, otherwise use 'auto'

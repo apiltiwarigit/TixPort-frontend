@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { EventFilters, Event } from '@/types';
 import { GridEventCard, CompactEventCard, ListEventCard } from '@/components/EventCard';
 import { Loading, EmptyState } from '@/components/ui';
+import { useCategories } from '@/contexts/CategoryContext';
 
 export interface EventsGridProps {
   events?: Event[];
@@ -161,6 +162,46 @@ export default function LegacyEventsGrid({
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [categoryId, setCategoryId] = useState<string | null>(null);
+  const { categories } = useCategories();
+
+  // Resolve category ID using the CategoryContext
+  useEffect(() => {
+    if (!category) {
+      setCategoryId(null);
+      return;
+    }
+
+    // Handle "all" category specially
+    if (category.toLowerCase() === 'all') {
+      setCategoryId('all');
+      return;
+    }
+
+    // Find category in the context data
+    const findCategoryInTree = (cats: any[]): any => {
+      for (const cat of cats) {
+        if (cat.name.toLowerCase() === category.toLowerCase() || 
+            cat.slug === category.toLowerCase()) {
+          return cat;
+        }
+        if (cat.children && cat.children.length > 0) {
+          const found = findCategoryInTree(cat.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    const foundCategory = findCategoryInTree(categories);
+    if (foundCategory) {
+      setCategoryId(foundCategory.id.toString());
+      console.log(`🏷️ [EventsGrid] Resolved category "${category}" to ID: ${foundCategory.id}`);
+    } else {
+      console.warn(`⚠️ [EventsGrid] Category "${category}" not found in context`);
+      setCategoryId(null);
+    }
+  }, [category, categories]);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -172,20 +213,14 @@ export default function LegacyEventsGrid({
 
         const filters: EventFilters = {};
         
-        // Use direct category ID for reliable filtering
-        if (category) {
-          const categoryMap: { [key: string]: string } = {
-            'concerts': '54',
-            'sports': '1', 
-            'theatre': '68'
-          };
-          
-          const categoryId = categoryMap[category.toLowerCase()];
-          if (categoryId) {
+        // Use resolved category ID for filtering
+        if (categoryId) {
+          if (categoryId === 'all') {
+            // For "all" category, don't set category_id filter to get all events
+            console.log(`🏷️ [EventsGrid] Using "all" category - no category filter applied`);
+          } else {
             filters.category_id = categoryId;
             console.log(`🏷️ [EventsGrid] Using category ID ${categoryId} for "${category}"`);
-          } else {
-            console.warn(`⚠️ [EventsGrid] Unknown category: "${category}"`);
           }
         }
         
@@ -289,8 +324,11 @@ export default function LegacyEventsGrid({
       }
     };
 
-    fetchEvents();
-  }, [category, city, state]);
+    // Only fetch events when categoryId is resolved (or null for no category)
+    if (categoryId !== undefined) {
+      fetchEvents();
+    }
+  }, [categoryId, city, state]);
 
   if (loading) {
     return (
