@@ -402,7 +402,7 @@ export default function EventBuyPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Seatmap Section */}
           <div className="lg:col-span-2">
-            <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700 overflow-hidden">
+            <div className="bg-gray-800/50 rounded-lg border border-gray-700">
               <div className="p-6 border-b border-gray-700">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
@@ -438,7 +438,7 @@ export default function EventBuyPage() {
                   </div>
                 ) : showSeatmap && seatmapData?.venueId && seatmapData?.configurationId && ticketGroups.length > 0 ? (
                   <div
-                    className="h-[600px] w-full relative bg-gray-800 rounded overflow-hidden seatmap-container"
+                    className="h-[600px] w-full relative bg-gray-800 rounded seatmap-container"
                     style={{
                       minHeight: '600px',
                       fontFamily: 'system-ui, -apple-system, sans-serif'

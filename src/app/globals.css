@@ -397,3 +397,41 @@ body {
   background: unset !important;
 }
 
+/* Seatmap tooltip alignment fixes */
+.seatmap-container [data-rh],
+.seatmap-container [data-testid="tooltip"],
+.seatmap-container .tevo-tooltip {
+  position: fixed !important;
+  transform: translate3d(0,0,0) !important;
+  will-change: top, left !important;
+  pointer-events: none;
+}
+
+/* Ensure container doesn't create a new containing block */
+.seatmap-container {
+  contain: none !important;
+}
+
+/* SeatMap tooltip dark theme styling */
+.seatmap-container [data-testid="seatmaps-tooltip"] > div[style*="border-color: white"] {
+  border-color: #1f2937 transparent transparent !important;
+}
+
+.seatmap-container [data-testid="seatmaps-tooltip"] > div[style*="border-color: transparent white"] {
+  border-color: transparent #1f2937 !important;
+}
+
+.seatmap-container [data-testid="seatmaps-tooltip"] > div[style*="background-color: white"] {
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+  border: 1px solid #374151 !important;
+  border-radius: 6px !important;
+}
+
+/* Ensure text inside tooltip is visible on dark background */
+.seatmap-container [data-testid="seatmaps-tooltip"] > div[style*="background-color: white"] div,
+.seatmap-container [data-testid="seatmaps-tooltip"] > div[style*="background-color: white"] span,
+.seatmap-container [data-testid="seatmaps-tooltip"] > div[style*="background-color: white"] * {
+  color: #f9fafb !important;
+}
+
