@@ -8,8 +8,8 @@ const nextConfig = {
   },
   // Ensure proper routing for Vercel
   trailingSlash: false,
-  // Enable static exports if needed
-  output: 'standalone',
+  // Remove output: 'standalone' for Vercel deployment
+  // output: 'standalone',
 }
 
 module.exports = nextConfig
