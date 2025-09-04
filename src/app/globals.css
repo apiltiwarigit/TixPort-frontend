@@ -375,7 +375,27 @@ body {
 .seatmap-container div[style*="pointer-events: all"] > div {
   background-color: unset !important;
   border-radius: unset !important;
-  margin: unset !important;
+}
+
+/* Fix zoom control button positioning */
+.seatmap-container div[style*="pointer-events: all"] > div[data-testid="zoom-in"],
+.seatmap-container div[style*="pointer-events: all"] > div[data-testid="zoom-out"],
+.seatmap-container div[style*="pointer-events: all"] > div[data-testid="reset-zoom"] {
+  margin: 0 !important;
+  position: relative !important;
+  z-index: 20 !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+/* Ensure proper spacing between zoom controls */
+.seatmap-container div[style*="pointer-events: all"] > div[data-testid="zoom-in"] {
+  margin-right: 2px !important;
+}
+
+.seatmap-container div[style*="pointer-events: all"] > div[data-testid="zoom-out"] {
+  margin-left: 2px !important;
+  margin-right: 2px !important;
 }
 
 /* Dropdown controls */
