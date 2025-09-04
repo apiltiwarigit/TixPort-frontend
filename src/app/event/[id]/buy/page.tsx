@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams, useRouter } from 'next/navigation'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { LoadingSkeleton } from '@/components/ui/Loading'
 import { TicketMap } from '@ticketevolution/seatmaps-client'
@@ -85,6 +85,8 @@ export default function EventBuyPage() {
   const [showSeatmap, setShowSeatmap] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [currentStep, setCurrentStep] = useState<'select' | 'review' | 'checkout'>('select')
+  const [dataFetched, setDataFetched] = useState(false)
+  const fetchedRef = useRef<string | null>(null)
 
   // Fetch event details
   useEffect(() => {
@@ -108,54 +110,91 @@ export default function EventBuyPage() {
     fetchEvent()
   }, [eventId])
 
-  // Fetch seatmap data and ticket groups
+  // Reset data fetched state when eventId changes
+  useEffect(() => {
+    setDataFetched(false)
+    fetchedRef.current = null
+    setSeatmapData(null)
+    setTicketGroups([])
+    setShowSeatmap(false)
+    setError(null)
+  }, [eventId])
+
+  // Fetch seatmap data and ticket groups - only once when event is loaded
   useEffect(() => {
     const fetchSeatmapData = async () => {
-      if (!eventId) return
+      if (!eventId || !event || dataFetched || seatmapLoading || fetchedRef.current === eventId) {
+        return
+      }
       
+      console.log(`🚀 Starting seatmap data fetch for event ${eventId}`)
       setSeatmapLoading(true)
+      setDataFetched(true)
+      fetchedRef.current = eventId
+      
       try {
-        // Fetch seatmap configuration
-        const seatmapResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/tickets/event/${eventId}/seatmap`)
+        // Fetch both seatmap and ticket groups in parallel to avoid multiple renders
+        const [seatmapResponse, ticketGroupsResponse] = await Promise.all([
+          fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/tickets/event/${eventId}/seatmap`),
+          fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/tickets/event/${eventId}/groups?limit=100`)
+        ])
+
+        // Process seatmap data
+        let seatmapData = null
         if (seatmapResponse.ok) {
-          const seatmapData = await seatmapResponse.json()
-          setSeatmapData(seatmapData.data)
-          
-          if (seatmapData.data.configurationId) {
+          const seatmapResult = await seatmapResponse.json()
+          seatmapData = seatmapResult.data
+          setSeatmapData(seatmapData)
+
+          // Show seatmap if we have both venueId and configurationId
+          if (seatmapData.venueId && seatmapData.configurationId) {
             setShowSeatmap(true)
+            console.log(`✅ Seatmap data available: venue ${seatmapData.venueId}, config ${seatmapData.configurationId}`)
+          } else {
+            console.log(`⚠️ Seatmap data incomplete: venue ${seatmapData.venueId}, config ${seatmapData.configurationId}`)
           }
         }
 
-        // Fetch ticket groups
-        const ticketGroupsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/tickets/event/${eventId}/groups?limit=100`)
+        // Process ticket groups
         if (ticketGroupsResponse.ok) {
           const ticketGroupsData = await ticketGroupsResponse.json()
-          const transformedGroups = (ticketGroupsData.data.ticketGroups || []).map((group: any) => ({
+          
+          // Transform and deduplicate ticket groups by section
+          const allGroups = (ticketGroupsData.data.ticketGroups || []).map((group: any) => ({
             ...group,
             tevo_section_name: group.tevo_section_name || group.section,
-            price: group.retail_price || group.wholesale_price
+            price: group.retail_price || group.wholesale_price || group.price || 0
           }))
+
+          // Create a map to deduplicate by section, keeping the best price
+          const groupMap = new Map()
+          allGroups.forEach((group: any) => {
+            const key = `${group.tevo_section_name}`
+            const existing = groupMap.get(key)
+            
+            if (!existing || group.price < existing.price) {
+              groupMap.set(key, group)
+            }
+          })
+
+          const transformedGroups = Array.from(groupMap.values())
+          console.log(`🔄 Deduplication: ${allGroups.length} → ${transformedGroups.length} ticket groups`)
           setTicketGroups(transformedGroups)
           
-          // Check if ticket groups response contains configuration ID
-          if (ticketGroupsData.data.configurationId && seatmapData) {
+          // Check if ticket groups response contains configuration ID (fallback)
+          if (ticketGroupsData.data.configurationId && seatmapData && !seatmapData.configurationId) {
             console.log(`🎯 Found configuration ID in ticket groups: ${ticketGroupsData.data.configurationId}`)
             setSeatmapData(prev => prev ? {
               ...prev,
               configurationId: ticketGroupsData.data.configurationId
             } : null)
-            setShowSeatmap(true)
+            // Only show seatmap if we now have both venueId and configurationId
+            if (seatmapData.venueId && ticketGroupsData.data.configurationId) {
+              setShowSeatmap(true)
+            }
           }
           
           console.log(`✅ Loaded ${transformedGroups.length} ticket groups for event ${eventId}`)
-          console.log('📋 Sample ticket group:', transformedGroups[0])
-          console.log('🗺️ Seatmap data:', seatmapData)
-          console.log('🎯 Should show seatmap?', {
-            showSeatmap,
-            hasVenueId: !!seatmapData?.venueId,
-            hasConfigId: !!seatmapData?.configurationId,
-            ticketGroupsCount: transformedGroups.length
-          })
         } else if (ticketGroupsResponse.status === 404) {
           console.log('⚠️ No ticket groups found for this event')
           setTicketGroups([])
@@ -166,16 +205,16 @@ export default function EventBuyPage() {
       } catch (error) {
         console.error('Error fetching seatmap data:', error)
         setError('Failed to fetch seating information')
+        setDataFetched(false) // Allow retry on error
+        fetchedRef.current = null // Reset ref on error
       } finally {
         setSeatmapLoading(false)
         setLoading(false)
       }
     }
 
-    if (event) {
-      fetchSeatmapData()
-    }
-  }, [eventId, event])
+    fetchSeatmapData()
+  }, [eventId, event, dataFetched, seatmapLoading])
 
   // Handle section selection from seatmap
   const handleSectionSelection = useCallback((sections: string[]) => {
@@ -223,6 +262,14 @@ export default function EventBuyPage() {
 
   // Calculate total order amount
   const totalOrderAmount = selectedTickets.reduce((total, ticket) => total + ticket.totalPrice, 0)
+
+  // Memoize ticket groups for TicketMap to prevent unnecessary re-renders
+  const memoizedTicketGroups = useMemo(() => {
+    return ticketGroups.map(group => ({
+      tevo_section_name: group.tevo_section_name || group.section,
+      retail_price: parseFloat(String(group.retail_price || group.wholesale_price || group.price || 0))
+    }))
+  }, [ticketGroups])
 
   // Handle checkout
   const handleCheckout = () => {
@@ -390,15 +437,30 @@ export default function EventBuyPage() {
                     </div>
                   </div>
                 ) : showSeatmap && seatmapData?.venueId && seatmapData?.configurationId && ticketGroups.length > 0 ? (
-                  <div 
-                    className="h-96 w-full relative bg-white rounded"
-                    style={{ minHeight: '400px' }}
+                  <div
+                    className="h-96 w-full relative bg-white rounded overflow-hidden seatmap-container"
+                    style={{ 
+                      minHeight: '400px',
+                      fontFamily: 'system-ui, -apple-system, sans-serif'
+                    }}
                   >
                     <TicketMap
                       venueId={seatmapData.venueId}
                       configurationId={seatmapData.configurationId}
-                      ticketGroups={ticketGroups}
+                      ticketGroups={memoizedTicketGroups}
                       onSelection={handleSectionSelection}
+                      mapsDomain="https://maps.ticketevolution.com"
+                      mapFontFamily="system-ui, -apple-system, sans-serif"
+                      showLegend={true}
+                      showControls={true}
+                      mouseControlEnabled={true}
+                      sectionPercentiles={{
+                        "0.2": "#10B981",
+                        "0.4": "#F59E0B", 
+                        "0.6": "#EF4444",
+                        "0.8": "#8B5CF6",
+                        "1": "#3B82F6"
+                      }}
                     />
                   </div>
                 ) : (

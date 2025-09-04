@@ -263,3 +263,38 @@ body {
   @apply bg-primary-600 text-white px-2 py-1 rounded text-sm font-semibold;
 }
 
+/* Seatmap styling fixes */
+.seatmap-container text {
+  fill: #1f2937 !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  text-shadow: 0 0 3px rgba(255,255,255,0.8) !important;
+  font-family: system-ui, -apple-system, sans-serif !important;
+}
+
+.seatmap-container svg {
+  background: white !important;
+  font-family: system-ui, -apple-system, sans-serif !important;
+}
+
+.seatmap-container [data-section-id] {
+  stroke: #374151 !important;
+  stroke-width: 1.5 !important;
+}
+
+.seatmap-container [data-section-id]:hover {
+  stroke: #1f2937 !important;
+  stroke-width: 2 !important;
+}
+
+/* Ensure seatmap text is always visible */
+.seatmap-container svg text {
+  fill: #000000 !important;
+  font-weight: bold !important;
+  paint-order: stroke fill !important;
+  stroke: white !important;
+  stroke-width: 3px !important;
+  stroke-linejoin: round !important;
+  text-shadow: none !important;
+}
+
