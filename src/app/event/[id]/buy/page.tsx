@@ -16,6 +16,8 @@ import {
 } from '@heroicons/react/24/outline'
 import { Button } from '@/components/ui/Button'
 import Header from '@/components/Header'
+import StripeProvider from '@/components/StripeProvider'
+import CheckoutForm from '@/components/CheckoutForm'
 import Link from 'next/link'
 
 interface Event {
@@ -94,7 +96,9 @@ export default function EventBuyPage() {
   const [availableTicketsForSection, setAvailableTicketsForSection] = useState<TicketGroup[]>([])
   const [showSeatmap, setShowSeatmap] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [currentStep, setCurrentStep] = useState<'select' | 'review' | 'checkout'>('select')
+  const [currentStep, setCurrentStep] = useState<'select' | 'review' | 'checkout' | 'success'>('select')
+  const [orderData, setOrderData] = useState<any>(null)
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [dataFetched, setDataFetched] = useState(false)
   const fetchedRef = useRef<string | null>(null)
   const lastChosenSectionRef = useRef<string | null>(null)
@@ -377,10 +381,34 @@ export default function EventBuyPage() {
   // Handle checkout
   const handleCheckout = () => {
     if (selectedTickets.length === 0) return
-    
-    // Here you would integrate with payment processing
-    // For now, just show a success message
     setCurrentStep('checkout')
+  }
+
+  // Handle successful checkout
+  const handleCheckoutSuccess = (orderResult: any) => {
+    setOrderData(orderResult)
+    setCurrentStep('success')
+  }
+
+  // Handle checkout error
+  const handleCheckoutError = (error: string) => {
+    setCheckoutError(error)
+  }
+
+  // Get current ticket data for checkout
+  const getCurrentTicketData = () => {
+    if (selectedTickets.length === 0) return null
+    
+    const ticket = selectedTickets[0] // Using first selected ticket
+    return {
+      ticketGroupId: ticket.ticketGroupId,
+      section: ticket.section,
+      row: ticket.row,
+      quantity: ticket.quantity,
+      pricePerTicket: ticket.pricePerTicket,
+      totalPrice: ticket.totalPrice,
+      format: ticket.format
+    }
   }
 
   if (loading) {
@@ -502,41 +530,133 @@ export default function EventBuyPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Seatmap Section */}
-          <div className="lg:col-span-2">
-            <div className="bg-gray-800/50 rounded-lg border border-gray-700">
-              <div className="h-24 sm:h-20 p-6 border-b border-gray-700 flex flex-col justify-center">
-                <div className="flex items-center justify-between">
+        {/* Checkout Step */}
+        {currentStep === 'checkout' && (
+          <div className="max-w-4xl mx-auto">
+            <div className="mb-6">
+              <button
+                onClick={() => setCurrentStep('select')}
+                className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
+              >
+                <ArrowLeftIcon className="h-5 w-5" />
+                <span>Back to Seat Selection</span>
+              </button>
+            </div>
+            
+            <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700 p-6">
+              <h1 className="text-2xl font-bold text-white mb-6">Complete Your Purchase</h1>
+              
+              {checkoutError && (
+                <div className="mb-6 bg-red-900/20 border border-red-800 rounded-lg p-4">
                   <div className="flex items-center space-x-3">
-                    <MapIcon className="h-6 w-6 text-purple-400" />
-                    <h2 className="text-xl font-bold text-white">Select Your Seats</h2>
+                    <ExclamationTriangleIcon className="h-5 w-5 text-red-400" />
+                    <div className="text-red-300">{checkoutError}</div>
                   </div>
-
-                  {seatmapData && (
-                    <div className="text-sm text-gray-400">
-                      {seatmapData.venueName}
-                    </div>
-                  )}
                 </div>
+              )}
+              
+              <StripeProvider>
+                <CheckoutForm
+                  ticketData={getCurrentTicketData()!}
+                  eventData={{
+                    id: eventId,
+                    title: event!.title,
+                    date: event!.date,
+                    venue: typeof event!.venue === 'object' && event!.venue.name 
+                      ? event!.venue.name 
+                      : typeof event!.venue === 'string' 
+                        ? event!.venue 
+                        : 'Unknown Venue'
+                  }}
+                  onSuccess={handleCheckoutSuccess}
+                  onError={handleCheckoutError}
+                />
+              </StripeProvider>
+            </div>
+          </div>
+        )}
 
-                <div className="flex items-center justify-between mt-2">
-                  {selectedSections.length > 0 ? (
-                    <div className="flex items-center space-x-2">
-                      <CheckCircleIcon className="h-5 w-5 text-green-400" />
-                      <span className="text-sm text-gray-300 truncate">
-                        Selected Section: {selectedSections[0]}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-500">
-                      Click a section to select
-                    </div>
-                  )}
+        {/* Success Step */}
+        {currentStep === 'success' && orderData && (
+          <div className="max-w-2xl mx-auto text-center">
+            <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700 p-8">
+              <CheckCircleIcon className="h-16 w-16 text-green-400 mx-auto mb-4" />
+              <h1 className="text-3xl font-bold text-white mb-4">Order Confirmed!</h1>
+              <p className="text-gray-300 mb-6">
+                Your tickets have been successfully purchased.
+              </p>
+              
+              <div className="bg-gray-700/30 rounded-lg p-4 mb-6">
+                <div className="text-left space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Order ID:</span>
+                    <span className="text-white font-mono">{orderData.orderId}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Total:</span>
+                    <span className="text-green-400 font-semibold">${orderData.total?.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Status:</span>
+                    <span className="text-blue-400 capitalize">{orderData.status}</span>
+                  </div>
                 </div>
               </div>
+              
+              <div className="space-y-3">
+                <p className="text-sm text-gray-400">
+                  You will receive a confirmation email with your ticket details shortly.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Link href="/" className="btn-primary">
+                    Return Home
+                  </Link>
+                  <Link href="/profile/orders" className="btn-secondary">
+                    View My Orders
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
-              <div className="relative">
+        {/* Main Selection View */}
+        {(currentStep === 'select' || currentStep === 'review') && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Seatmap Section */}
+            <div className="lg:col-span-2">
+              <div className="bg-gray-800/50 rounded-lg border border-gray-700">
+                <div className="h-24 sm:h-20 p-6 border-b border-gray-700 flex flex-col justify-center">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <MapIcon className="h-6 w-6 text-purple-400" />
+                      <h2 className="text-xl font-bold text-white">Select Your Seats</h2>
+                    </div>
+
+                    {seatmapData && (
+                      <div className="text-sm text-gray-400">
+                        {seatmapData.venueName}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between mt-2">
+                    {selectedSections.length > 0 ? (
+                      <div className="flex items-center space-x-2">
+                        <CheckCircleIcon className="h-5 w-5 text-green-400" />
+                        <span className="text-sm text-gray-300 truncate">
+                          Selected Section: {selectedSections[0]}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-500">
+                        Click a section to select
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="relative">
                 {seatmapLoading ? (
                   <div className="h-96 p-8 flex items-center justify-center animate-pulse">
                     <div className="text-center">
@@ -615,11 +735,11 @@ export default function EventBuyPage() {
                      </div>
                   </div>
                 )}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Order Summary */}
+            {/* Order Summary */}
           <div className="lg:col-span-1">
             <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700 sticky top-8">
               <div className="p-6 border-b border-gray-700">
@@ -784,7 +904,8 @@ export default function EventBuyPage() {
               </div>
             </div>
           </div>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   )
