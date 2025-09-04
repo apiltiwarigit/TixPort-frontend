@@ -8,6 +8,7 @@ import { EventFilters, Event } from '@/types';
 import { GridEventCard, CompactEventCard, ListEventCard } from '@/components/EventCard';
 import { Loading, EmptyState } from '@/components/ui';
 import { useCategories } from '@/contexts/CategoryContext';
+import { useLocation } from '@/contexts/LocationContext';
 
 export interface EventsGridProps {
   events?: Event[];
@@ -164,6 +165,7 @@ export default function LegacyEventsGrid({
   const [error, setError] = useState<string | null>(null);
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const { categories } = useCategories();
+  const { location } = useLocation();
 
   // Resolve category ID using the CategoryContext
   useEffect(() => {
@@ -238,20 +240,13 @@ export default function LegacyEventsGrid({
           filters.q = locationParts.join(', ');
         }
 
-        // If we have location data with IP, use the actual IP address
-        if (typeof window !== 'undefined') {
-          try {
-            const locationData = localStorage.getItem('location_cache');
-            if (locationData) {
-              const location = JSON.parse(locationData);
-              if (location && location.ip && location.ip !== 'Unknown' && location.ip !== 'Browser-Geolocation') {
-                filters.ip = location.ip;
-                console.log('📍 [EventsGrid] Using cached IP for geolocation:', location.ip);
-              }
-            }
-          } catch (error) {
-            console.warn('Error reading cached IP:', error);
-          }
+        // Use IP geolocation - same logic as category page
+        if (location && location.ip && location.ip !== 'Unknown' && location.ip !== 'Browser-Geolocation') {
+          filters.ip = location.ip;
+          console.log('📍 [EventsGrid] Using IP for geolocation:', location.ip);
+        } else {
+          filters.ip = 'auto';
+          console.log('📍 [EventsGrid] No IP available, using auto-detection');
         }
 
         console.log('🎯 [EventsGrid] Props received:', { category, city, state });
