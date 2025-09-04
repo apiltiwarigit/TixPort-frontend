@@ -82,6 +82,7 @@ export default function EventBuyPage() {
   const [seatmapLoading, setSeatmapLoading] = useState(false)
   const [selectedSections, setSelectedSections] = useState<string[]>([])
   const [selectedTickets, setSelectedTickets] = useState<SelectedTicket[]>([])
+  const [availableTicketsForSection, setAvailableTicketsForSection] = useState<TicketGroup[]>([])
   const [showSeatmap, setShowSeatmap] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [currentStep, setCurrentStep] = useState<'select' | 'review' | 'checkout'>('select')
@@ -97,7 +98,30 @@ export default function EventBuyPage() {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/events/${eventId}`)
         if (response.ok) {
           const data = await response.json()
-          setEvent(data.data)
+          const raw = data.data || {}
+          console.log('Raw event data:', raw) // Debug log
+          console.log('Available city fields:', {
+            'raw.city': raw.city,
+            'raw.venue_city': raw.venue_city,
+            'raw.venue?.city': raw.venue?.city,
+            'venue object': raw.venue
+          })
+          
+          const normalized: Event = {
+            id: String(raw.id ?? eventId),
+            title: raw.title || raw.name || 'Untitled Event',
+            date: raw.date || raw.occurs_at || '',
+            venue: raw.venue || raw.venue_name || 'Unknown Venue',
+            city: raw.city || (typeof raw.venue === 'object' && raw.venue?.city) || raw.venue_city || '',
+            state: raw.state || (typeof raw.venue === 'object' && raw.venue?.state) || raw.venue_state || '',
+            description: raw.description || '',
+            image: raw.image || (raw.images && raw.images[0]?.url) || '',
+            price_min: raw.min_ticket_price || raw.price_min || 0,
+            price_max: raw.max_ticket_price || raw.price_max || 0,
+          }
+          
+          console.log('Normalized event data:', normalized) // Debug log
+          setEvent(normalized)
         } else {
           setError('Failed to fetch event details')
         }
@@ -219,41 +243,51 @@ export default function EventBuyPage() {
   // Handle section selection from seatmap
   const handleSectionSelection = useCallback((sections: string[]) => {
     setSelectedSections(sections)
-    
+
     if (sections.length > 0) {
       // Find tickets for selected sections
-      const selectedTicketGroups = ticketGroups.filter(group => 
+      const selectedTicketGroups = ticketGroups.filter(group =>
         sections.some(section => section.toLowerCase() === group.section.toLowerCase())
       )
-      
+
       if (selectedTicketGroups.length > 0) {
-        // Auto-select best available ticket in the section
-        const bestTicket = selectedTicketGroups.reduce((best, current) => 
-          current.retail_price < best.retail_price ? current : best
-        )
-        
-        const newSelectedTicket: SelectedTicket = {
-          ticketGroupId: bestTicket.id,
-          section: bestTicket.section,
-          row: bestTicket.row,
-          quantity: 1,
-          pricePerTicket: bestTicket.retail_price,
-          totalPrice: bestTicket.retail_price,
-          format: bestTicket.format
-        }
-        
-        setSelectedTickets([newSelectedTicket])
+        // Show all available tickets for the selected sections
+        setAvailableTicketsForSection(selectedTicketGroups)
+
+        // Don't auto-select anymore - let user choose
+        // Keep existing selected tickets if they exist
       }
     } else {
-      setSelectedTickets([])
+      setAvailableTicketsForSection([])
+      // Don't clear selected tickets when deselecting sections
     }
   }, [ticketGroups])
 
+  // Add ticket to selected list
+  const addTicketToSelection = (ticketGroup: TicketGroup) => {
+    const newSelectedTicket: SelectedTicket = {
+      ticketGroupId: ticketGroup.id,
+      section: ticketGroup.section,
+      row: ticketGroup.row,
+      quantity: 1,
+      pricePerTicket: ticketGroup.retail_price,
+      totalPrice: ticketGroup.retail_price,
+      format: ticketGroup.format
+    }
+
+    setSelectedTickets(prev => [...prev, newSelectedTicket])
+  }
+
+  // Remove ticket from selected list
+  const removeTicketFromSelection = (ticketGroupId: number) => {
+    setSelectedTickets(prev => prev.filter(ticket => ticket.ticketGroupId !== ticketGroupId))
+  }
+
   // Update ticket quantity
   const updateTicketQuantity = (ticketGroupId: number, newQuantity: number) => {
-    setSelectedTickets(prev => 
-      prev.map(ticket => 
-        ticket.ticketGroupId === ticketGroupId 
+    setSelectedTickets(prev =>
+      prev.map(ticket =>
+        ticket.ticketGroupId === ticketGroupId
           ? { ...ticket, quantity: newQuantity, totalPrice: newQuantity * ticket.pricePerTicket }
           : ticket
       ).filter(ticket => ticket.quantity > 0)
@@ -369,13 +403,13 @@ export default function EventBuyPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
-              <Link 
-                href={`/event/${eventId}`}
+              <button
+                onClick={() => router.back()}
                 className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
               >
                 <ArrowLeftIcon className="h-5 w-5" />
                 <span>Back to Event</span>
-              </Link>
+              </button>
               <div className="h-6 border-l border-gray-600"></div>
               <h1 className="text-xl font-bold text-white truncate">
                 Buy Tickets - {event.title}
@@ -527,7 +561,7 @@ export default function EventBuyPage() {
               </div>
 
               <div className="p-6">
-                {selectedTickets.length === 0 ? (
+                {selectedSections.length === 0 && selectedTickets.length === 0 ? (
                   <div className="text-center py-8">
                     <TicketIcon className="h-12 w-12 text-gray-500 mx-auto mb-4" />
                     <p className="text-gray-400">Select seats from the map to see pricing</p>
@@ -548,9 +582,47 @@ export default function EventBuyPage() {
                       <p className="text-sm text-gray-400">{typeof event.venue === 'object' && event.venue.name ? event.venue.name : typeof event.venue === 'string' ? event.venue : 'Unknown Venue'}</p>
                     </div>
 
+                    {/* Available Tickets for Selected Sections */}
+                    {availableTicketsForSection.length > 0 && (
+                      <div className="space-y-4">
+                        <h4 className="font-medium text-gray-300">Available Tickets</h4>
+                        <div className="space-y-3">
+                          {availableTicketsForSection.map((ticketGroup) => (
+                            <div key={ticketGroup.id} className="bg-gray-700/30 rounded-lg p-4 border border-gray-600">
+                              <div className="flex justify-between items-start mb-3">
+                                <div>
+                                  <p className="font-medium text-white">
+                                    Section {ticketGroup.section}, Row {ticketGroup.row}
+                                  </p>
+                                  <p className="text-sm text-gray-400">{ticketGroup.format}</p>
+                                  {ticketGroup.public_notes && (
+                                    <p className="text-xs text-gray-500 mt-1">{ticketGroup.public_notes}</p>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-bold text-green-400 text-lg">
+                                    ${ticketGroup.retail_price?.toFixed(2) || ticketGroup.price?.toFixed(2)}
+                                  </p>
+                                  <p className="text-xs text-gray-400">per ticket</p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => addTicketToSelection(ticketGroup)}
+                                disabled={selectedTickets.some(ticket => ticket.ticketGroupId === ticketGroup.id)}
+                                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                              >
+                                {selectedTickets.some(ticket => ticket.ticketGroupId === ticketGroup.id) ? 'Added to Cart' : 'Add to Cart'}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Selected Tickets */}
-                    <div className="space-y-4">
-                      <h4 className="font-medium text-gray-300">Selected Tickets</h4>
+                    {selectedTickets.length > 0 && (
+                      <div className="space-y-4">
+                        <h4 className="font-medium text-gray-300">Selected Tickets</h4>
                       {selectedTickets.map((ticket) => (
                         <div key={ticket.ticketGroupId} className="bg-gray-700/50 rounded-lg p-4">
                           <div className="flex justify-between items-start mb-2">
@@ -602,7 +674,8 @@ export default function EventBuyPage() {
                           </div>
                         </div>
                       ))}
-                    </div>
+                      </div>
+                    )}
 
                     {/* Order Total */}
                     <div className="border-t border-gray-600 pt-4">
@@ -615,7 +688,7 @@ export default function EventBuyPage() {
                       
                       <button
                         onClick={handleCheckout}
-                        disabled={selectedTickets.length === 0}
+                        disabled={selectedTickets.length === 0 || totalOrderAmount === 0}
                         className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2"
                       >
                         <ShoppingCartIcon className="h-5 w-5" />
