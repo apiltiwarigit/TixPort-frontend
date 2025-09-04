@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
 import { eventsApi } from '@/lib/api';
 import Link from 'next/link';
@@ -9,6 +9,7 @@ import { GridEventCard, CompactEventCard, ListEventCard } from '@/components/Eve
 import { Loading, EmptyState } from '@/components/ui';
 import { useCategories } from '@/contexts/CategoryContext';
 import { useLocation } from '@/contexts/LocationContext';
+import { useEventsData } from '@/hooks/useEventsData';
 
 export interface EventsGridProps {
   events?: Event[];
@@ -166,6 +167,8 @@ export default function LegacyEventsGrid({
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const { categories } = useCategories();
   const { location } = useLocation();
+  const isRequestInProgress = useRef(false);
+  const lastRequestTime = useRef(0);
 
   // Resolve category ID using the CategoryContext
   useEffect(() => {
@@ -207,11 +210,26 @@ export default function LegacyEventsGrid({
 
   useEffect(() => {
     const fetchEvents = async () => {
+      // Prevent duplicate calls while already loading
+      if (isRequestInProgress.current) {
+        console.log(`⏳ [EventsGrid-${category}] Request already in progress, skipping duplicate call`);
+        return;
+      }
+
+      // Prevent rapid successive calls (debounce)
+      const now = Date.now();
+      if (now - lastRequestTime.current < 500) {
+        console.log(`⏳ [EventsGrid-${category}] Too soon since last request, skipping duplicate call`);
+        return;
+      }
+      lastRequestTime.current = now;
+
       try {
+        isRequestInProgress.current = true;
         setLoading(true);
         setError(null);
         
-        console.log('🌐 [EventsGrid] Making API call with IP geolocation support');
+        console.log(`🌐 [EventsGrid-${category}] Making API call with IP geolocation support`);
 
         const filters: EventFilters = {};
         
@@ -315,15 +333,21 @@ export default function LegacyEventsGrid({
         setError(errorMessage);
         setEvents([]);
       } finally {
+        isRequestInProgress.current = false;
         setLoading(false);
       }
     };
 
     // Only fetch events when categoryId is resolved (or null for no category)
     if (categoryId !== undefined) {
-      fetchEvents();
+      // Add a small delay to prevent rapid successive calls
+      const timeoutId = setTimeout(() => {
+        fetchEvents();
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
     }
-  }, [categoryId, city, state]);
+  }, [categoryId, city, state, location?.ip]);
 
   if (loading) {
     return (
