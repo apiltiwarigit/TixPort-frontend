@@ -46,7 +46,26 @@ export default function AdminSettingsPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setSettings(data.data || []);
+        const list = Array.isArray(data.data) ? data.data : [];
+        // Map backend fields -> frontend model and infer type from config_type/config_value
+        const mapped: ConfigSetting[] = list.map((item: any) => {
+          const key: string = item.config_key;
+          const rawValue: any = item.config_value;
+          const desc: string | undefined = item.description || undefined;
+          const configType: string = item.config_type || typeof rawValue;
+          let type: 'string' | 'number' | 'boolean' | 'json' = 'string';
+          if (configType === 'number' || typeof rawValue === 'number') type = 'number';
+          else if (configType === 'boolean' || typeof rawValue === 'boolean') type = 'boolean';
+          else if (configType === 'json') type = 'json';
+          return {
+            key,
+            value: type === 'json' ? JSON.stringify(rawValue ?? {}, null, 2) : String(rawValue ?? ''),
+            description: desc,
+            type,
+            updated_at: item.updated_at || item.updatedAt || undefined,
+          };
+        });
+        setSettings(mapped);
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -64,13 +83,38 @@ export default function AdminSettingsPage() {
       if (!token) return;
 
       const session = JSON.parse(token);
+      // Find the setting to parse according to its type
+      const setting = settings.find(s => s.key === key);
+      let parsedValue: any = value;
+      if (setting) {
+        switch (setting.type) {
+          case 'number':
+            parsedValue = Number(value);
+            break;
+          case 'boolean':
+            parsedValue = String(value) === 'true';
+            break;
+          case 'json':
+            try {
+              parsedValue = value ? JSON.parse(value) : {};
+            } catch (e) {
+              setMessage({ type: 'error', text: 'Invalid JSON. Please fix and try again.' });
+              setSaving(false);
+              return;
+            }
+            break;
+          default:
+            parsedValue = value;
+        }
+      }
+
       const response = await fetch(`${API_BASE}/api/admin/config`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ key, value }),
+        body: JSON.stringify({ config_key: key, config_value: parsedValue }),
       });
 
       if (response.ok) {
@@ -78,7 +122,8 @@ export default function AdminSettingsPage() {
         await fetchSettings();
         setTimeout(() => setMessage(null), 3000);
       } else {
-        setMessage({ type: 'error', text: 'Failed to update setting' });
+        const err = await response.json().catch(() => ({}));
+        setMessage({ type: 'error', text: err.message || 'Failed to update setting' });
         setTimeout(() => setMessage(null), 3000);
       }
     } catch (error) {
@@ -101,7 +146,7 @@ export default function AdminSettingsPage() {
       case 'boolean':
         return (
           <select
-            value={setting.value}
+            value={String(setting.value)}
             onChange={(e) => handleSettingChange(setting.key, e.target.value)}
             className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
