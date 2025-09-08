@@ -193,8 +193,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          setProfile(data.data.profile);
-          return { profile: data.data.profile };
+          // Ensure role is present under profile for consistent checks
+          const mergedProfile = data.data.role && (!data.data.profile || !data.data.profile.role)
+            ? { ...(data.data.profile || {}), role: data.data.role }
+            : data.data.profile;
+          setProfile(mergedProfile);
+          return { profile: mergedProfile };
         }
       }
 
@@ -214,8 +218,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (retryResponse.ok) {
             const retryData = await retryResponse.json();
             if (retryData.success) {
-              setProfile(retryData.data.profile);
-              return { profile: retryData.data.profile, newSession };
+              const mergedProfile = retryData.data.role && (!retryData.data.profile || !retryData.data.profile.role)
+                ? { ...(retryData.data.profile || {}), role: retryData.data.role }
+                : retryData.data.profile;
+              setProfile(mergedProfile);
+              return { profile: mergedProfile, newSession };
             }
           }
         }
