@@ -3,6 +3,7 @@ class ConfigService {
   private cache: Map<string, any> = new Map();
   private lastFetch: number = 0;
   private cacheTimeout: number = 5 * 60 * 1000; // 5 minutes
+  private inflight: Promise<Record<string, any>> | null = null;
 
   private async fetchConfig(): Promise<Record<string, any>> {
     try {
@@ -27,14 +28,10 @@ class ConfigService {
   }
 
   private getDefaultConfig(): Record<string, any> {
+    // Minimal operational defaults only (avoid branding/contact hardcoding)
     return {
       location_search_radius: 60,
-      contact_email: 'support@tixport.com',
-      contact_phone: '+1-555-123-4567',
-      contact_address: '123 Main St, City, State 12345',
-      site_name: 'TixPort',
-      max_homepage_categories: 3,
-      min_homepage_categories: 1
+      api_cache_duration: 300
     };
   }
 
@@ -43,11 +40,16 @@ class ConfigService {
     
     // Check if we need to refresh the cache
     if (forceRefresh || !this.cache.has('config') || (now - this.lastFetch) > this.cacheTimeout) {
-      console.log('🔧 [ConfigService] Fetching fresh config data');
-      const config = await this.fetchConfig();
-      this.cache.set('config', config);
-      this.lastFetch = now;
-      return config;
+      if (!this.inflight) {
+        this.inflight = (async () => {
+          const config = await this.fetchConfig();
+          this.cache.set('config', config);
+          this.lastFetch = Date.now();
+          this.inflight = null;
+          return config;
+        })();
+      }
+      return this.inflight;
     }
 
     // Return cached config

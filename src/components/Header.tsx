@@ -21,6 +21,7 @@ import {
 import { useLocation } from '@/contexts/LocationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCategories } from '@/contexts/CategoryContext';
+import { configService } from '@/lib/configService';
 
 interface Category {
   id: number;
@@ -40,11 +41,34 @@ export default function Header() {
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
   const { location, loading, error, formatLocation } = useLocation();
   const { user, profile, signOut } = useAuth();
+  const [siteName, setSiteName] = useState<string>('');
+  const [contactEmail, setContactEmail] = useState<string>('');
+  const [contactPhone, setContactPhone] = useState<string>('');
+  const [maintenanceMode, setMaintenanceMode] = useState<boolean>(false);
 
   // Check if user has admin role
   const isAdmin = user && (profile?.role === 'admin' || profile?.role === 'owner');
   // Use cached categories from context
   const { categories, loading: categoriesLoading } = useCategories();
+
+  // Load project config values used in the header
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const cfg = await configService.getConfig();
+        if (cfg.site_name) setSiteName(String(cfg.site_name));
+        if (cfg.contact_email) setContactEmail(String(cfg.contact_email));
+        if (cfg.contact_phone) setContactPhone(String(cfg.contact_phone));
+        if (cfg.maintenance_mode !== undefined) {
+          const val = typeof cfg.maintenance_mode === 'boolean' ? cfg.maintenance_mode : String(cfg.maintenance_mode) === 'true';
+          setMaintenanceMode(val);
+        }
+      } catch (e) {
+        // Use defaults on failure
+      }
+    };
+    loadConfig();
+  }, []);
 
   const toggleCategory = (categoryId: number) => {
     const newExpanded = new Set(expandedCategories);
@@ -116,6 +140,12 @@ export default function Header() {
 
   return (
     <>
+      {/* Maintenance Banner */}
+      {maintenanceMode && (
+        <div className="bg-red-900 text-red-200 text-center text-xs sm:text-sm py-2 border-b border-red-800">
+          The site is currently in maintenance mode. Some features may be unavailable.
+        </div>
+      )}
       {/* Top Bar - Hidden on mobile */}
       <div className="hidden sm:block bg-gray-900 border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -131,11 +161,11 @@ export default function Header() {
             <div className="hidden lg:flex items-center space-x-6">
               <div className="flex items-center space-x-2 text-gray-300">
                 <PhoneIcon className="h-4 w-4" />
-                <span>(281) 392-9693</span>
+                <span>{contactPhone || ''}</span>
               </div>
               <div className="flex items-center space-x-2 text-gray-300">
                 <EnvelopeIcon className="h-4 w-4" />
-                <span>demo-contact@tixport.com</span>
+                <span>{contactEmail || ''}</span>
               </div>
             </div>
 
@@ -171,7 +201,7 @@ export default function Header() {
                 <div className="w-8 h-8 bg-purple-600 rounded flex items-center justify-center">
                   <span className="text-white font-bold text-lg">T</span>
                 </div>
-                <span className="text-white font-bold text-lg">TIXPORT</span>
+                <span className="text-white font-bold text-lg">{(siteName && siteName.toUpperCase()) || ''}</span>
               </Link>
             </div>
 
@@ -282,7 +312,7 @@ export default function Header() {
                 <div className="w-8 h-8 bg-purple-600 rounded flex items-center justify-center">
                   <span className="text-white font-bold text-lg">T</span>
                 </div>
-                <span className="text-white font-bold text-lg">TIXPORT</span>
+                <span className="text-white font-bold text-lg">{(siteName && siteName.toUpperCase()) || ''}</span>
               </Link>
             </div>
 

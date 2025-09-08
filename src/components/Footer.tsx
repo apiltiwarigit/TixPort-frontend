@@ -1,6 +1,24 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { configService } from '@/lib/configService';
+
 export default function Footer() {
+  const [siteName, setSiteName] = useState<string>('');
+  const [address, setAddress] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
+  const [phone, setPhone] = useState<string>('');
+
+  useEffect(() => {
+    const load = async () => {
+      const cfg = await configService.getConfig();
+      if (cfg.site_name) setSiteName(String(cfg.site_name));
+      if (cfg.contact_address) setAddress(String(cfg.contact_address));
+      if (cfg.contact_email) setEmail(String(cfg.contact_email));
+      if (cfg.contact_phone) setPhone(String(cfg.contact_phone));
+    };
+    load();
+  }, []);
   return (
     <footer className="bg-gray-900 border-t border-gray-700">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -12,10 +30,16 @@ export default function Footer() {
               <div className="w-8 h-8 bg-purple-600 rounded flex items-center justify-center">
                 <span className="text-white font-bold">T</span>
               </div>
-              <span className="text-white font-bold text-lg">TIXPORT</span>
+              <span className="text-white font-bold text-lg">{(siteName && siteName.toUpperCase()) || ''}</span>
             </div>
             <p className="text-gray-300 text-sm leading-relaxed">
               Premium tickets for concerts, sports and theater. Authentic seats, secure checkout, and top support.
+            </p>
+            <p className="text-gray-400 text-sm mt-2">
+              {address}
+            </p>
+            <p className="text-gray-400 text-sm mt-1">
+              {email}{email && phone ? ' • ' : ''}{phone}
             </p>
           </div>
 
@@ -57,7 +81,7 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div className="border-t border-gray-700 mt-8 pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="text-gray-400 text-sm">© 2025 TixPort. All rights reserved.</div>
+          <div className="text-gray-400 text-sm">© 2025 {siteName || ''}. All rights reserved.</div>
           <div className="flex items-center gap-4 text-gray-400 text-sm">
             <span>Licensed Broker</span>
             <span>•</span>

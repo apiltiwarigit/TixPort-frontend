@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { configService } from '@/lib/configService';
 import EventsGrid from '@/components/EventsGrid';
 
 interface HomepageCategory {
@@ -37,26 +38,15 @@ export default function DynamicEventsGrid() {
           setError(null);
         } else {
           // Fallback to default categories if no admin configuration
-          setHomepageCategories([
-            {
-              id: 'fallback-1',
-              display_order: 1,
-              is_active: true,
-              categories: { id: 0, name: 'Concerts', slug: 'concerts' }
-            },
-            {
-              id: 'fallback-2',
-              display_order: 2,
-              is_active: true,
-              categories: { id: 0, name: 'Sports', slug: 'sports' }
-            },
-            {
-              id: 'fallback-3',
-              display_order: 3,
-              is_active: true,
-              categories: { id: 0, name: 'Theatre', slug: 'theatre' }
-            }
-          ]);
+          const maxCfg = await configService.getValue('max_homepage_categories', 4);
+          const max = typeof maxCfg === 'number' ? maxCfg : parseInt(String(maxCfg)) || 4;
+          const defaults = [
+            { id: 'fallback-1', display_order: 1, is_active: true, categories: { id: 0, name: 'Concerts', slug: 'concerts' } },
+            { id: 'fallback-2', display_order: 2, is_active: true, categories: { id: 0, name: 'Sports', slug: 'sports' } },
+            { id: 'fallback-3', display_order: 3, is_active: true, categories: { id: 0, name: 'Theatre', slug: 'theatre' } },
+            { id: 'fallback-4', display_order: 4, is_active: true, categories: { id: 0, name: 'Comedy', slug: 'comedy' } },
+          ];
+          setHomepageCategories(defaults.slice(0, Math.max(1, Math.min(max, 4))));
         }
       } catch (err) {
         console.error('Error fetching homepage categories:', err);

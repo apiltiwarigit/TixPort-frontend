@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { configService } from '@/lib/configService';
 import { PageContainer } from '@/components/layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
 import { Button } from '@/components/ui';
@@ -24,6 +25,15 @@ export default function ContactPage() {
     inquiryType: 'general'
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [contact, setContact] = useState<{ phone: string; email: string; address: string }>({ phone: '', email: '', address: '' });
+
+  useEffect(() => {
+    const load = async () => {
+      const { email, phone, address } = await configService.getContactInfo();
+      setContact({ email, phone, address });
+    };
+    load();
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -56,19 +66,19 @@ export default function ContactPage() {
     {
       icon: PhoneIcon,
       title: 'Phone Support',
-      details: ['(281) 392-9693', 'Mon-Fri 9AM-6PM EST'],
+      details: [contact.phone || '(281) 392-9693', 'Mon-Fri 9AM-6PM EST'],
       color: 'text-blue-500'
     },
     {
       icon: EnvelopeIcon,
       title: 'Email Support',
-      details: ['support@tixport.com', '24/7 Response'],
+      details: [contact.email || 'support@tixport.com', '24/7 Response'],
       color: 'text-green-500'
     },
     {
       icon: MapPinIcon,
       title: 'Office Address',
-      details: ['123 Ticket Street', 'New York, NY 10001'],
+      details: [contact.address || '123 Ticket Street', ''],
       color: 'text-purple-500'
     },
     {

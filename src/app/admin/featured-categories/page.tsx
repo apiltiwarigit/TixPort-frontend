@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { configService } from '@/lib/configService';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   TagIcon,
@@ -45,9 +46,17 @@ export default function AdminFeaturedCategoriesPage() {
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [limits, setLimits] = useState<{ min: number; max: number }>({ min: 1, max: 4 });
 
   useEffect(() => {
-    fetchData();
+    const init = async () => {
+      const minCfg = await configService.getValue('min_homepage_categories', 1);
+      const maxCfg = await configService.getValue('max_homepage_categories', 4);
+      const toNum = (v: any, d: number) => (typeof v === 'number' ? v : parseInt(String(v)) || d);
+      setLimits({ min: toNum(minCfg, 1), max: toNum(maxCfg, 4) });
+      await fetchData();
+    };
+    init();
   }, []);
 
   const fetchData = async () => {
@@ -120,8 +129,8 @@ export default function AdminFeaturedCategoriesPage() {
     try {
       setSaving(true);
       
-      if (selectedCategoryIds.length < 1 || selectedCategoryIds.length > 4) {
-        setMessage({ type: 'error', text: 'Please select between 1-4 categories' });
+      if (selectedCategoryIds.length < limits.min || selectedCategoryIds.length > limits.max) {
+        setMessage({ type: 'error', text: `Please select between ${limits.min}-${limits.max} categories` });
         setTimeout(() => setMessage(null), 3000);
         return;
       }
@@ -163,10 +172,10 @@ export default function AdminFeaturedCategoriesPage() {
     setSelectedCategoryIds(prev => {
       if (prev.includes(categoryId)) {
         return prev.filter(id => id !== categoryId);
-      } else if (prev.length < 4) {
+      } else if (prev.length < limits.max) {
         return [...prev, categoryId];
       } else {
-        setMessage({ type: 'error', text: 'Maximum 4 categories can be selected' });
+        setMessage({ type: 'error', text: `Maximum ${limits.max} categories can be selected` });
         setTimeout(() => setMessage(null), 3000);
         return prev;
       }
@@ -244,7 +253,7 @@ export default function AdminFeaturedCategoriesPage() {
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-white flex items-center gap-2">
                 <CubeIcon className="h-6 w-6 text-blue-500" />
-                Selected Categories ({selectedCategoryIds.length}/4)
+                Selected Categories ({selectedCategoryIds.length}/{limits.max})
               </h2>
               <button
                 onClick={saveConfiguration}
