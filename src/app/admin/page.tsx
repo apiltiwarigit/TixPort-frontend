@@ -29,17 +29,40 @@ export default function AdminDashboard() {
       try {
         setLoading(true);
         const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
+        const token = localStorage.getItem('auth_session');
         
-        // Fetch basic stats (simplified for demo)
+        if (!token) return;
+
+        const session = JSON.parse(token);
+        const response = await fetch(`${API_BASE}/api/admin/dashboard/stats`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setStats(data.data || {});
+        } else {
+          console.error('Failed to fetch dashboard stats');
+          // Fallback to empty stats
+          setStats({
+            totalUsers: 0,
+            heroSections: 0,
+            categories: 0,
+            lastSync: 'Never'
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+        // Fallback to empty stats
         setStats({
           totalUsers: 0,
-          adminUsers: 0,
           heroSections: 0,
           categories: 0,
           lastSync: 'Never'
         });
-      } catch (error) {
-        console.error('Error fetching dashboard stats:', error);
       } finally {
         setLoading(false);
       }
