@@ -63,16 +63,16 @@ export function EventCard({
       )}
 
       {/* Event Content */}
-      <div className={`${isCompact ? 'p-4' : 'p-6'} ${isList ? 'flex-1' : ''}`}>
+      <div className={`${isCompact ? 'p-3' : 'p-5'} ${isList ? 'flex-1' : ''}`}>
         {/* Title */}
-        <h3 className={`font-semibold text-white mb-2 line-clamp-2 ${
+        <h3 className={`font-semibold text-white mb-3 line-clamp-2 ${
           isCompact ? 'text-sm' : isGrid ? 'text-lg' : 'text-xl'
         }`}>
           {event.name}
         </h3>
         
         {/* Event Details */}
-        <div className={`space-y-2 mb-4 ${isList ? 'flex flex-wrap gap-4' : ''}`}>
+        <div className={`space-y-2 mb-3 ${isList ? 'flex flex-wrap gap-4' : ''}`}>
           {/* Date and Time */}
           <div className={`flex items-center text-gray-300 text-sm ${isList ? 'mr-4' : ''}`}>
             <CalendarDaysIcon className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
@@ -106,7 +106,7 @@ export function EventCard({
 
         {/* Performers */}
         {showPerformers && event.performers && event.performers.length > 0 && !isList && (
-          <div className="mb-4">
+          <div className="mb-3">
             <div className="text-xs text-gray-400">
               <span>{event.performers[0].name}</span>
               {event.performers.length > 1 && (
@@ -120,10 +120,10 @@ export function EventCard({
         {showButton && (
           <div className={isList ? 'ml-auto flex-shrink-0' : ''}>
             <Button
-              size={isCompact ? 'sm' : 'md'}
+              size="sm"
               fullWidth={!isList}
               onClick={() => onButtonClick?.(event)}
-              className="transform hover:scale-105"
+              className="transform hover:scale-105 transition-all duration-200 text-xs px-3 py-2 h-8"
             >
               {buttonText}
             </Button>
@@ -135,8 +135,9 @@ export function EventCard({
 
   const cardClass = `
     ${isList ? 'flex items-center' : ''}
-    hover:shadow-xl hover:scale-[1.02] transition-all duration-300 
+    hover:shadow-2xl hover:shadow-green-500/10 hover:scale-[1.01] transition-all duration-300
     cursor-pointer group transform animate-fade-in-up
+    border border-gray-700/50 bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-sm
     ${className}
   `;
 
