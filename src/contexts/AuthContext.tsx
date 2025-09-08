@@ -116,7 +116,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === 'undefined') return null;
     try {
       const stored = localStorage.getItem('auth_session');
-      return stored ? JSON.parse(stored) : null;
+      if (!stored) return null;
+
+      const session: Session = JSON.parse(stored);
+
+      // Check if access token is expired
+      if (session.expires_at && session.expires_at * 1000 < Date.now()) {
+        // Token is expired, check if we can refresh it
+        if (session.refresh_token) {
+          console.log('Access token expired, attempting refresh...');
+          return session; // Return session, let refresh logic handle it
+        } else {
+          // No refresh token available, clear session
+          localStorage.removeItem('auth_session');
+          return null;
+        }
+      }
+
+      return session;
     } catch {
       return null;
     }
@@ -132,8 +149,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Fetch user profile
-  const fetchProfile = useCallback(async (accessToken: string) => {
+  // Function to refresh access token
+  const refreshAccessToken = useCallback(async (refreshToken: string): Promise<Session | null> => {
+    try {
+      const response = await fetch(`${API_BASE}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${refreshToken}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data.session) {
+          const newSession = data.data.session;
+          storeSession(newSession);
+          return newSession;
+        }
+      }
+
+      // Refresh failed, clear session
+      storeSession(null);
+      return null;
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      storeSession(null);
+      return null;
+    }
+  }, [API_BASE]);
+
+  // Fetch user profile with token refresh capability
+  const fetchProfile = useCallback(async (accessToken: string, refreshToken?: string): Promise<{ profile: any; newSession?: Session } | null> => {
     try {
       const response = await fetch(`${API_BASE}/auth/profile`, {
         headers: {
@@ -146,15 +193,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const data = await response.json();
         if (data.success) {
           setProfile(data.data.profile);
-          return data.data.profile;
+          return { profile: data.data.profile };
         }
       }
+
+      // If request failed due to auth error and we have refresh token, try refresh
+      if ((response.status === 401 || response.status === 403) && refreshToken) {
+        console.log('Profile fetch failed, attempting token refresh...');
+        const newSession = await refreshAccessToken(refreshToken);
+        if (newSession) {
+          // Retry with new token
+          const retryResponse = await fetch(`${API_BASE}/auth/profile`, {
+            headers: {
+              'Authorization': `Bearer ${newSession.access_token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (retryResponse.ok) {
+            const retryData = await retryResponse.json();
+            if (retryData.success) {
+              setProfile(retryData.data.profile);
+              return { profile: retryData.data.profile, newSession };
+            }
+          }
+        }
+      }
+
       return null;
     } catch (error) {
       console.error('Error fetching profile:', error);
       return null;
     }
-  }, [API_BASE]);
+  }, [API_BASE, refreshAccessToken]);
 
   // Update profile
   const updateProfile = useCallback(async (updates: Partial<UserProfile>) => {
@@ -189,9 +260,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Refresh profile
   const refreshProfile = useCallback(async () => {
     if (session?.access_token) {
-      await fetchProfile(session.access_token);
+      await fetchProfile(session.access_token, session.refresh_token);
     }
-  }, [session?.access_token, fetchProfile]);
+  }, [session?.access_token, session?.refresh_token, fetchProfile]);
 
   // Sign in function
   const signIn = useCallback(async (email: string, password: string) => {
@@ -304,40 +375,96 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [pathname, user, initialized, router]);
 
-  // Initialize auth state
+  // Listen for auth events from API interceptors
+  useEffect(() => {
+    const handleSessionRefreshed = (event: CustomEvent) => {
+      console.log('Session refreshed via API interceptor');
+      const { session } = event.detail;
+      setUser(session.user);
+      setSession(session);
+      // Profile will be updated automatically when needed
+    };
+
+    const handleLogout = () => {
+      console.log('Logout triggered via API interceptor');
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+      router.push('/login');
+    };
+
+    window.addEventListener('auth:sessionRefreshed', handleSessionRefreshed as EventListener);
+    window.addEventListener('auth:logout', handleLogout);
+
+    return () => {
+      window.removeEventListener('auth:sessionRefreshed', handleSessionRefreshed as EventListener);
+      window.removeEventListener('auth:logout', handleLogout);
+    };
+  }, [router]);
+
+  // Initialize auth state with improved error handling and token refresh
   useEffect(() => {
     const initializeAuth = async () => {
       try {
         // Get stored session
         const storedSession = getStoredSession();
-        
-        if (storedSession?.access_token) {
-          // Verify session with backend
-          const response = await fetch(`${API_BASE}/auth/profile`, {
-            headers: {
-              'Authorization': `Bearer ${storedSession.access_token}`,
-              'Content-Type': 'application/json',
-            },
-          });
 
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success) {
-              setUser(data.data.user);
-              setSession(storedSession);
-              setProfile(data.data.profile);
+        if (storedSession?.access_token) {
+          console.log('Initializing auth with stored session...');
+
+          // First, check if token is expired and try to refresh if needed
+          let currentSession = storedSession;
+          if (storedSession.expires_at && storedSession.expires_at * 1000 < Date.now()) {
+            if (storedSession.refresh_token) {
+              console.log('Stored token expired, attempting refresh during init...');
+              const refreshedSession = await refreshAccessToken(storedSession.refresh_token);
+              if (refreshedSession) {
+                currentSession = refreshedSession;
+              } else {
+                // Refresh failed, session is invalid
+                console.log('Token refresh failed during init, clearing session');
+                storeSession(null);
+                setLoading(false);
+                setInitialized(true);
+                return;
+              }
             } else {
-              // Invalid session, clear it
+              // No refresh token, clear session
+              console.log('No refresh token available, clearing expired session');
               storeSession(null);
+              setLoading(false);
+              setInitialized(true);
+              return;
+            }
+          }
+
+          // Verify session with backend using the potentially refreshed token
+          const profileResult = await fetchProfile(currentSession.access_token, currentSession.refresh_token);
+
+          if (profileResult) {
+            setUser(currentSession.user);
+            setSession(currentSession);
+            setProfile(profileResult.profile);
+
+            // If we got a new session from refresh, update state
+            if (profileResult.newSession) {
+              setSession(profileResult.newSession);
             }
           } else {
-            // Invalid session, clear it
+            // Session verification failed, clear it
+            console.log('Session verification failed, clearing session');
             storeSession(null);
           }
+        } else {
+          console.log('No stored session found');
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
-        storeSession(null);
+        // Only clear session if it's a critical error, not just network issues
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes('Invalid token') || errorMessage.includes('expired')) {
+          storeSession(null);
+        }
       } finally {
         setLoading(false);
         setInitialized(true);
@@ -345,7 +472,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     initializeAuth();
-  }, [API_BASE]);
+  }, [API_BASE, refreshAccessToken, fetchProfile]);
 
   const value: AuthContextType = {
     user,
