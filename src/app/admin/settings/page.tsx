@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  CogIcon,
-  SaveIcon,
+  Cog6ToothIcon as CogIcon,
+  CheckIcon as SaveIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline';
