@@ -51,6 +51,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { name: 'Users', href: '/admin/users', icon: UsersIcon },
     { name: 'Hero Sections', href: '/admin/hero-sections', icon: PhotoIcon },
     { name: 'Categories', href: '/admin/categories', icon: TagIcon },
+    { name: 'Featured Categories', href: '/admin/featured-categories', icon: TagIcon },
     { name: 'Settings', href: '/admin/settings', icon: CogIcon },
   ];
 
