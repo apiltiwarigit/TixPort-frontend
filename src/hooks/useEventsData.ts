@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { eventsApi } from '@/lib/api';
 import { Event, EventFilters } from '@/types';
 import { useLocation } from '@/contexts/LocationContext';
+import { configService } from '@/lib/configService';
 
 interface UseEventsDataOptions {
   categoryId?: string | null;
@@ -101,7 +102,7 @@ export function useEventsData({
         
         // Use IP geolocation for location-based results
         filters.only_with_available_tickets = true;
-        filters.within = 60;
+        filters.within = await configService.getLocationSearchRadius();
 
         // For first page, explicitly request IP geolocation
         if (!city && !state) {

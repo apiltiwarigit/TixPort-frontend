@@ -4,7 +4,7 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import HeroSection from '@/components/HeroSection';
 import GuaranteeSection from '@/components/GuaranteeSection';
-import EventsGrid from '@/components/EventsGrid';
+import DynamicEventsGrid from '@/components/DynamicEventsGrid';
 import Footer from '@/components/Footer';
 import LocationDisplay from '@/components/LocationDisplay';
 
@@ -100,24 +100,8 @@ export default function Home() {
               </div>
             </div>
           ) : (
-            // Always show events using IP geolocation - no need to wait for location detection
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-              <EventsGrid
-                title={`Local Concerts Events`}
-                category="Concerts"
-                moreButtonText="More Concerts Events"
-              />
-              <EventsGrid
-                title={`Local Sports Events`}
-                category="Sports"
-                moreButtonText="More Sports Events"
-              />
-              <EventsGrid
-                title={`Local Theatre Events`}
-                category="Theatre"
-                moreButtonText="More Theatre Events"
-              />
-            </div>
+            // Use dynamic events grid configured by admin
+            <DynamicEventsGrid />
           )}
         </main>
       </div>

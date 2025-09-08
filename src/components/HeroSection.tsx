@@ -1,32 +1,85 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+
+interface HeroSection {
+  id: string;
+  title: string;
+  description: string;
+  image_url: string;
+  primary_button_text: string;
+  primary_button_url: string;
+  secondary_button_text: string;
+  secondary_button_url: string;
+  display_order: number;
+}
 
 export default function HeroSection() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [imageError, setImageError] = useState(false);
+  const [featuredEvents, setFeaturedEvents] = useState<HeroSection[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const featuredEvents = [
-    {
-      id: 1,
-      title: "2024 Kentucky Derby May 4, 2024 Churchill Downs",
-      description: "Experience the most exciting two minutes in sports at Churchill Downs. Join us for the 150th running of the Kentucky Derby with premium seating and exclusive access.",
-      image: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=1200&h=800&fit=crop&crop=center&auto=format&q=80"
-    },
-    {
-      id: 2,
-      title: "Taylor Swift - The Eras Tour",
-      description: "Don't miss Taylor Swift's spectacular Eras Tour featuring songs from all her albums. A once-in-a-lifetime concert experience with stunning visuals and unforgettable performances.",
-      image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1200&h=800&fit=crop&crop=center&auto=format&q=80"
-    },
-    {
-      id: 3,
-      title: "Lakers vs Warriors - NBA Finals",
-      description: "Witness basketball history in the making. The ultimate showdown for the championship with the best players in the world competing for glory.",
-      image: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1200&h=800&fit=crop&crop=center&auto=format&q=80"
-    }
-  ];
+  // Fetch hero sections from API
+  useEffect(() => {
+    const fetchHeroSections = async () => {
+      try {
+        setLoading(true);
+        const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
+        const response = await fetch(`${API_BASE}/api/public/hero-sections`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch hero sections');
+        }
+
+        const data = await response.json();
+        
+        if (data.success && data.data.length > 0) {
+          setFeaturedEvents(data.data);
+          setError(null);
+        } else {
+          // Fallback to default hero sections if no data
+          setFeaturedEvents([
+            {
+              id: 'default-1',
+              title: "Welcome to TixPort",
+              description: "Discover and buy tickets for concerts, sports, theater and more events. Get the best seats with guaranteed authenticity and instant delivery.",
+              image_url: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1200&h=800&fit=crop&crop=center&auto=format&q=80",
+              primary_button_text: "Browse Events",
+              primary_button_url: "/category/all",
+              secondary_button_text: "Learn More",
+              secondary_button_url: "/about",
+              display_order: 1
+            }
+          ]);
+        }
+      } catch (err) {
+        console.error('Error fetching hero sections:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load hero sections');
+        
+        // Fallback to default hero section on error
+        setFeaturedEvents([
+          {
+            id: 'fallback-1',
+            title: "Welcome to TixPort",
+            description: "Discover and buy tickets for concerts, sports, theater and more events. Get the best seats with guaranteed authenticity and instant delivery.",
+            image_url: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1200&h=800&fit=crop&crop=center&auto=format&q=80",
+            primary_button_text: "Browse Events",
+            primary_button_url: "/category/all",
+            secondary_button_text: "Learn More",
+            secondary_button_url: "/about",
+            display_order: 1
+          }
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHeroSections();
+  }, []);
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % featuredEvents.length);
@@ -41,6 +94,37 @@ export default function HeroSection() {
   const handleImageError = () => {
     setImageError(true);
   };
+
+  const handlePrimaryButtonClick = () => {
+    if (featuredEvents[currentSlide]?.primary_button_url) {
+      window.location.href = featuredEvents[currentSlide].primary_button_url;
+    }
+  };
+
+  const handleSecondaryButtonClick = () => {
+    if (featuredEvents[currentSlide]?.secondary_button_url) {
+      window.location.href = featuredEvents[currentSlide].secondary_button_url;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="relative bg-gradient-to-r from-gray-800 to-gray-900 rounded-lg overflow-hidden h-80 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+        <span className="ml-3 text-gray-400">Loading hero content...</span>
+      </div>
+    );
+  }
+
+  if (featuredEvents.length === 0) {
+    return (
+      <div className="relative bg-gradient-to-r from-gray-800 to-gray-900 rounded-lg overflow-hidden h-80 flex items-center justify-center">
+        <div className="text-center text-gray-400">
+          <p>No hero content available</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative bg-gradient-to-r from-gray-800 to-gray-900 rounded-lg overflow-hidden h-80 group">
@@ -73,15 +157,19 @@ export default function HeroSection() {
               {featuredEvents[currentSlide].description}
             </p>
 
-
-
             {/* CTAs */}
             <div className="flex items-center gap-2 animate-fade-in-up" style={{ animationDelay: '0.25s' }}>
-              <button className="btn-primary text-xs sm:text-sm px-4 py-2 transform transition-all duration-300 hover:scale-105 hover:shadow-lg">
-                View Tickets
+              <button 
+                onClick={handlePrimaryButtonClick}
+                className="btn-primary text-xs sm:text-sm px-4 py-2 transform transition-all duration-300 hover:scale-105 hover:shadow-lg"
+              >
+                {featuredEvents[currentSlide].primary_button_text}
               </button>
-              <button className="text-xs sm:text-sm px-4 py-2 rounded-md border border-gray-600 text-white hover:bg-gray-700 transition-colors">
-                View Dates
+              <button 
+                onClick={handleSecondaryButtonClick}
+                className="text-xs sm:text-sm px-4 py-2 rounded-md border border-gray-600 text-white hover:bg-gray-700 transition-colors"
+              >
+                {featuredEvents[currentSlide].secondary_button_text}
               </button>
             </div>
           </div>
@@ -131,7 +219,7 @@ export default function HeroSection() {
             ) : (
               <img
                 key={`img-${currentSlide}`}
-                src={featuredEvents[currentSlide].image}
+                src={featuredEvents[currentSlide].image_url}
                 alt={featuredEvents[currentSlide].title}
                 className="w-full h-full object-cover transition-all duration-700 ease-in-out transform group-hover:scale-110 hero-image image-enhanced opacity-100 scale-100"
                 loading="eager"

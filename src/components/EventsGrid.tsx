@@ -10,6 +10,7 @@ import { Loading, EmptyState } from '@/components/ui';
 import { useCategories } from '@/contexts/CategoryContext';
 import { useLocation } from '@/contexts/LocationContext';
 import { useEventsData } from '@/hooks/useEventsData';
+import { configService } from '@/lib/configService';
 
 export interface EventsGridProps {
   events?: Event[];
@@ -246,7 +247,7 @@ export default function LegacyEventsGrid({
         
         // Use IP geolocation for location-based results
         filters.only_with_available_tickets = true;
-        filters.within = 60;
+        filters.within = await configService.getLocationSearchRadius();
 
         // For first page, explicitly request IP geolocation
         if (!city && !state) {
