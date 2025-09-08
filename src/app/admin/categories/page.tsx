@@ -7,7 +7,9 @@ import {
   ArrowPathIcon,
   EyeIcon,
   EyeSlashIcon,
-  MagnifyingGlassIcon
+  MagnifyingGlassIcon,
+  ChevronRightIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline';
 
 interface Category {
@@ -23,10 +25,14 @@ interface Category {
 
 export default function AdminCategoriesPage() {
   const { user } = useAuth();
+  // Flat list for stats and utilities
   const [categories, setCategories] = useState<Category[]>([]);
+  // Tree list for rendering
+  const [categoryTree, setCategoryTree] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     fetchCategories();
@@ -50,7 +56,11 @@ export default function AdminCategoriesPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setCategories(data.data || []);
+        const list: Category[] = (data.data || []) as Category[];
+        setCategories(list);
+        setCategoryTree(buildCategoryTree(list));
+        // Collapse all on fresh load
+        setExpanded(new Set());
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -115,16 +125,67 @@ export default function AdminCategoriesPage() {
     }
   };
 
-  const filteredCategories = categories.filter(category =>
-    category.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    category.slug.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const buildCategoryTree = (list: Category[]): Category[] => {
+    const byId = new Map<number, Category & { children: Category[] }>();
+    list.forEach((c) => {
+      byId.set(c.id, { ...c, children: [] });
+    });
+    const roots: Category[] = [];
+    list.forEach((c) => {
+      const node = byId.get(c.id)!;
+      if (c.parent_id && byId.has(c.parent_id)) {
+        byId.get(c.parent_id)!.children!.push(node);
+      } else {
+        roots.push(node);
+      }
+    });
+    return roots;
+  };
+
+  const filterTree = (nodes: Category[], query: string): Category[] => {
+    const q = query.trim().toLowerCase();
+    if (!q) return nodes;
+    const filterNode = (node: Category): Category | null => {
+      const children = (node.children || []).map(filterNode).filter(Boolean) as Category[];
+      const matches = node.name.toLowerCase().includes(q) || node.slug.toLowerCase().includes(q);
+      if (matches || children.length > 0) {
+        return { ...node, children };
+      }
+      return null;
+    };
+    return nodes.map(filterNode).filter(Boolean) as Category[];
+  };
+
+  const filteredTree = filterTree(categoryTree, searchQuery);
+
+  const toggleExpand = (id: number) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   const renderCategoryTree = (categories: Category[], level = 0) => {
     return categories.map((category) => (
       <div key={category.id} className={`${level > 0 ? 'ml-6' : ''}`}>
         <div className="flex items-center justify-between p-3 bg-gray-800 border border-gray-700 rounded-lg mb-2">
           <div className="flex items-center gap-3">
+            {category.children && category.children.length > 0 ? (
+              <button
+                onClick={() => toggleExpand(category.id)}
+                className="flex-shrink-0 text-gray-300 hover:text-white"
+                aria-label="Toggle expand"
+              >
+                {searchQuery || expanded.has(category.id) ? (
+                  <ChevronDownIcon className="h-5 w-5" />
+                ) : (
+                  <ChevronRightIcon className="h-5 w-5" />
+                )}
+              </button>
+            ) : (
+              <div className="flex-shrink-0 w-5 h-5" />
+            )}
             <div className="flex-shrink-0">
               <TagIcon className="h-5 w-5 text-gray-400" />
             </div>
@@ -156,7 +217,7 @@ export default function AdminCategoriesPage() {
             </button>
           </div>
         </div>
-        {category.children && category.children.length > 0 && (
+        {category.children && category.children.length > 0 && (searchQuery || expanded.has(category.id)) && (
           <div className="ml-4">
             {renderCategoryTree(category.children, level + 1)}
           </div>
@@ -206,8 +267,8 @@ export default function AdminCategoriesPage() {
           </div>
         ) : (
           <>
-            {filteredCategories.length > 0 ? (
-              renderCategoryTree(filteredCategories)
+            {filteredTree.length > 0 ? (
+              renderCategoryTree(filteredTree)
             ) : (
               <div className="text-center py-8">
                 <TagIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
