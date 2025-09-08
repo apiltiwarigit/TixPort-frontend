@@ -122,10 +122,10 @@ export default function LocationDebug() {
         <div className="text-gray-500 space-y-1">
           <div>💡 If location is incorrect:</div>
           <div className="ml-4 text-xs">
-            • Click "Test Services" to debug each location service<br/>
-            • Click "Manual NY" to force New York location<br/>
+            • Click &quot;Test Services&quot; to debug each location service<br/>
+            • Click &quot;Manual NY&quot; to force New York location<br/>
             • Check browser location permissions<br/>
-            • Try "Refresh" to re-detect location<br/>
+            • Try &quot;Refresh&quot; to re-detect location<br/>
             • Check console logs for detailed debugging info
           </div>
         </div>

@@ -30,7 +30,7 @@ export function Pagination({
   // Calculate visible page range
   const getVisiblePages = () => {
     let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
 
     // Adjust start page if we're near the end
     if (endPage - startPage + 1 < maxVisiblePages) {
@@ -165,9 +165,8 @@ export function CompactPagination(props: Omit<PaginationProps, 'maxVisiblePages'
 // Loading state wrapper
 export function PaginationWithLoading({
   loading,
-  children,
   ...props
-}: PaginationProps & { children?: React.ReactNode }) {
+}: PaginationProps) {
   if (loading) {
     return (
       <div className="flex justify-center items-center space-x-2 animate-pulse">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { PageContainer } from '@/components/layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
 import { Button } from '@/components/ui';
@@ -124,9 +125,11 @@ export default function CartPage() {
                       <div className="flex flex-col sm:flex-row gap-4">
                         {/* Event Image */}
                         <div className="w-full sm:w-32 h-32 sm:h-24 flex-shrink-0">
-                          <img
+                          <Image
                             src={item.image}
                             alt={item.eventTitle}
+                            width={128}
+                            height={96}
                             className="w-full h-full object-cover rounded-lg"
                           />
                         </div>

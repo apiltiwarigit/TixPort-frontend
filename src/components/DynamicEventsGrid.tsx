@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { configService } from '@/lib/configService';
+// import { configService } from '@/lib/configService';
 import EventsGrid from '@/components/EventsGrid';
 
 interface HomepageCategory {

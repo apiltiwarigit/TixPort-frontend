@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/Select'
 import { 
   CreditCardIcon, 
   ShieldCheckIcon, 
@@ -28,7 +27,7 @@ interface CheckoutFormProps {
     date: string
     venue: string
   }
-  onSuccess: (orderData: any) => void
+  onSuccess: (orderData: unknown) => void
   onError: (error: string) => void
 }
 
@@ -73,20 +72,13 @@ export default function CheckoutForm({ ticketData, eventData, onSuccess, onError
 
   // Get session ID for Riskified fraud protection
   const [sessionId] = useState(() => {
-    if (typeof window !== 'undefined' && (window as any).riskifiedSessionId) {
-      return (window as any).riskifiedSessionId
+    if (typeof window !== 'undefined' && (window as { riskifiedSessionId?: string }).riskifiedSessionId) {
+      return (window as unknown as { riskifiedSessionId: string }).riskifiedSessionId
     }
     return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   })
 
-  // Load delivery options and calculate taxes when form data changes
-  useEffect(() => {
-    if (formData.zipCode && formData.zipCode.length === 5) {
-      calculateOrderDetails()
-    }
-  }, [formData.zipCode, ticketData])
-
-  const calculateOrderDetails = async () => {
+  const calculateOrderDetails = useCallback(async () => {
     try {
       setLoading(true)
       
@@ -127,7 +119,14 @@ export default function CheckoutForm({ ticketData, eventData, onSuccess, onError
     } finally {
       setLoading(false)
     }
-  }
+  }, [ticketData, formData.zipCode, selectedDelivery, eventData.id, subtotal])
+
+  // Load delivery options and calculate taxes when form data changes
+  useEffect(() => {
+    if (formData.zipCode && formData.zipCode.length === 5) {
+      calculateOrderDetails()
+    }
+  }, [formData.zipCode, ticketData, calculateOrderDetails])
 
   const validateForm = () => {
     const errors: Record<string, string> = {}
@@ -253,15 +252,6 @@ export default function CheckoutForm({ ticketData, eventData, onSuccess, onError
     }
   }
 
-  const updateBillingAddress = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      billingAddress: {
-        ...prev.billingAddress,
-        [field]: value
-      }
-    }))
-  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">

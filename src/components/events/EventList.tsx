@@ -1,10 +1,11 @@
-import { ReactNode } from 'react';
+// import { ReactNode } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   MapPinIcon,
   CalendarDaysIcon,
   ClockIcon,
-  CurrencyDollarIcon,
+  // CurrencyDollarIcon,
   StarIcon,
   ChevronRightIcon
 } from '@heroicons/react/24/outline';
@@ -177,9 +178,11 @@ export function EventList({
               {/* Event Image (optional) */}
               {showImages && event.image && (
                 <div className="w-16 h-16 flex-shrink-0 mr-4 overflow-hidden rounded-lg">
-                  <img
+                  <Image
                     src={event.image}
                     alt={event.name}
+                    width={64}
+                    height={64}
                     className="w-full h-full object-cover"
                   />
                 </div>

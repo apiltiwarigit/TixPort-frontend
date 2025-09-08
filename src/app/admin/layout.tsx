@@ -36,7 +36,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       }
 
       // Get user role from profile data
-      const role = (profile as any)?.role || 'user';
+      const role = (profile as { role?: string })?.role || 'user';
       setUserRole(role);
 
       if (!['admin', 'owner'].includes(role)) {
@@ -70,7 +70,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div className="text-center">
           <ShieldCheckIcon className="h-16 w-16 text-red-400 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white mb-2">Access Denied</h1>
-          <p className="text-gray-400 mb-4">You don't have permission to access the admin panel.</p>
+          <p className="text-gray-400 mb-4">You don&apos;t have permission to access the admin panel.</p>
           <Link href="/" className="btn-primary">
             Go to Homepage
           </Link>

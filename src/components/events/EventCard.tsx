@@ -1,10 +1,11 @@
-import { ReactNode } from 'react';
+// import { ReactNode } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   MapPinIcon,
   CalendarDaysIcon,
   ClockIcon,
-  CurrencyDollarIcon,
+  // CurrencyDollarIcon,
   StarIcon,
   TicketIcon
 } from '@heroicons/react/24/outline';
@@ -58,9 +59,11 @@ export function EventCard({
       {/* Event Image */}
       {showImage && event.image && (
         <div className={`relative ${isCompact ? 'h-32' : isFeatured ? 'h-64' : 'h-48'} overflow-hidden rounded-t-xl`}>
-          <img
+          <Image
             src={event.image}
             alt={event.name}
+            width={400}
+            height={isCompact ? 128 : isFeatured ? 256 : 192}
             className="w-full h-full object-cover"
           />
           {event.category && (

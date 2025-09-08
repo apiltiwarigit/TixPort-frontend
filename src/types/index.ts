@@ -69,7 +69,7 @@ export interface EventsResponse {
       total_entries: number;
       total_pages: number;
     };
-    filters: any;
+    filters: unknown;
   };
 }
 

@@ -9,7 +9,7 @@ import { GridEventCard, CompactEventCard, ListEventCard } from '@/components/Eve
 import { Loading, EmptyState } from '@/components/ui';
 import { useCategories } from '@/contexts/CategoryContext';
 import { useLocation } from '@/contexts/LocationContext';
-import { useEventsData } from '@/hooks/useEventsData';
+// import { useEventsData } from '@/hooks/useEventsData';
 import { configService } from '@/lib/configService';
 
 export interface EventsGridProps {
@@ -185,14 +185,14 @@ export default function LegacyEventsGrid({
     }
 
     // Find category in the context data
-    const findCategoryInTree = (cats: any[]): any => {
+    const findCategoryInTree = (cats: { name: string; slug: string; id: number; children?: unknown[] }[]): { name: string; slug: string; id: number; children?: unknown[] } | null => {
       for (const cat of cats) {
         if (cat.name.toLowerCase() === category.toLowerCase() || 
             cat.slug === category.toLowerCase()) {
           return cat;
         }
         if (cat.children && cat.children.length > 0) {
-          const found = findCategoryInTree(cat.children);
+          const found = findCategoryInTree(cat.children as { name: string; slug: string; id: number; children?: unknown[] }[]);
           if (found) return found;
         }
       }
@@ -274,63 +274,64 @@ export default function LegacyEventsGrid({
         const response = await eventsApi.getEvents(filters, 1, 5);
         
         // Transform the API response to match our Event interface
-        const transformedEvents: Event[] = response.data.events.map((event: any) => {
+        const transformedEvents: Event[] = (response.data.events as unknown as Array<Record<string, unknown>>).map((event: Record<string, unknown>) => {
           const eventDateTime = event.occurs_at_local || event.occurs_at || event.date_time_local;
-          const venueAddress = event.venue?.address || {};
+          const venueAddress = (event.venue as Record<string, unknown>)?.address as Record<string, unknown> || {};
 
           return {
-            id: event.id,
-            name: event.name,
-            date_time_local: eventDateTime,
+            id: event.id as number,
+            name: event.name as string,
+            date_time_local: (eventDateTime as string) || new Date().toISOString(),
             venue: {
-              id: event.venue?.id || 0,
-              name: event.venue?.name || 'Unknown Venue',
-              address: venueAddress.street_address || venueAddress.extended_address || '',
-              city: venueAddress.locality || venueAddress.city || 'Unknown City',
-              state_province: venueAddress.region || venueAddress.state || 'Unknown State',
-              country: venueAddress.country_code || 'Unknown Country',
-              postal_code: venueAddress.postal_code || '',
-              latitude: venueAddress.latitude,
-              longitude: venueAddress.longitude
+              id: ((event.venue as Record<string, unknown>)?.id as number) || 0,
+              name: ((event.venue as Record<string, unknown>)?.name as string) || 'Unknown Venue',
+              address: (venueAddress.street_address as string) || (venueAddress.extended_address as string) || '',
+              city: (venueAddress.locality as string) || (venueAddress.city as string) || 'Unknown City',
+              state_province: (venueAddress.region as string) || (venueAddress.state as string) || 'Unknown State',
+              country: (venueAddress.country_code as string) || 'Unknown Country',
+              postal_code: (venueAddress.postal_code as string) || '',
+              latitude: (venueAddress.latitude as number),
+              longitude: (venueAddress.longitude as number)
             },
             category: {
-              id: event.category?.id || 0,
-              name: event.category?.name || 'Unknown Category',
-              parent_id: event.category?.parent?.id
+              id: ((event.category as Record<string, unknown>)?.id as number) || 0,
+              name: ((event.category as Record<string, unknown>)?.name as string) || 'Unknown Category',
+              parent_id: (((event.category as Record<string, unknown>)?.parent as Record<string, unknown>)?.id as number)
             },
-            performers: (event.performances || []).map((performance: any) => ({
-              id: performance.performer?.id || 0,
-              name: performance.performer?.name || 'Unknown Performer',
+            performers: ((event.performers as Array<Record<string, unknown>>) || []).map((performance: Record<string, unknown>) => ({
+              id: ((performance.performer as Record<string, unknown>)?.id as number) || 0,
+              name: ((performance.performer as Record<string, unknown>)?.name as string) || 'Unknown Performer',
               category: {
-                id: performance.performer?.category?.id || 0,
-                name: performance.performer?.category?.name || 'Unknown',
-                parent_id: performance.performer?.category?.parent?.id
+                id: (((performance.performer as Record<string, unknown>)?.category as Record<string, unknown>)?.id as number) || 0,
+                name: (((performance.performer as Record<string, unknown>)?.category as Record<string, unknown>)?.name as string) || 'Unknown',
+                parent_id: ((((performance.performer as Record<string, unknown>)?.category as Record<string, unknown>)?.parent as Record<string, unknown>)?.id as number)
               },
-              primary: performance.primary || false,
-              home_team: performance.home_team,
-              away_team: performance.away_team
+              primary: (performance.primary as boolean) || false,
+              home_team: performance.home_team as boolean,
+              away_team: performance.away_team as boolean
             })),
-            min_ticket_price: event.min_ticket_price,
-            max_ticket_price: event.max_ticket_price,
-            url: event.url || `/event/${event.id}/buy`,
-            date: eventDateTime ? new Date(eventDateTime).toLocaleDateString('en-US', {
+            min_ticket_price: event.min_ticket_price as number,
+            max_ticket_price: event.max_ticket_price as number,
+            url: (event.url as string) || `/event/${event.id}/buy`,
+            date: eventDateTime ? new Date(eventDateTime as string).toLocaleDateString('en-US', {
               weekday: 'short',
               month: 'short',
               day: 'numeric'
             }).toUpperCase() : 'Unknown Date',
-            time: eventDateTime ? new Date(eventDateTime).toLocaleTimeString('en-US', {
+            time: eventDateTime ? new Date(eventDateTime as string).toLocaleTimeString('en-US', {
               hour: 'numeric',
               minute: '2-digit',
               hour12: true
             }) : 'Unknown Time',
-            location: event.venue?.location || `${venueAddress.locality || 'Unknown City'}, ${venueAddress.region || 'Unknown State'}`
+            location: ((event.venue as Record<string, unknown>)?.location as string) || `${(venueAddress.locality as string) || 'Unknown City'}, ${(venueAddress.region as string) || 'Unknown State'}`
           };
         });
         
         setEvents(transformedEvents);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error fetching events:', err);
-        const errorMessage = err?.response?.data?.message || err?.message || 'Failed to load events';
+        const errorMessage = (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+                            (err as { message?: string })?.message || 'Failed to load events';
         setError(errorMessage);
         setEvents([]);
       } finally {
@@ -348,7 +349,7 @@ export default function LegacyEventsGrid({
 
       return () => clearTimeout(timeoutId);
     }
-  }, [categoryId, city, state, location?.ip]);
+  }, [categoryId, city, state, location, category, categories]);
 
   if (loading) {
     return (

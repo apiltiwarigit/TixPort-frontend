@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import {
   GlobeAltIcon,
@@ -37,6 +37,49 @@ export default function Sidebar() {
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
   const lastPathname = useRef<string>('');
 
+  // Find the path from root to a specific category (returns array of category IDs)
+  const findCategoryPath = useCallback((targetId: number, categories: Category[], currentPath: number[] = []): number[] => {
+    for (const category of categories) {
+      const newPath = [...currentPath, category.id];
+
+      if (category.id === targetId) {
+        return newPath;
+      }
+
+      if (category.children && category.children.length > 0) {
+        const childPath = findCategoryPath(targetId, category.children, newPath);
+        if (childPath.length > 0) {
+          return childPath;
+        }
+      }
+    }
+    return [];
+  }, []);
+
+  // Find a category by ID in the categories tree
+  const findCategoryById = useCallback((targetId: number, categories: Category[]): Category | null => {
+    for (const category of categories) {
+      if (category.id === targetId) {
+        return category;
+      }
+
+      if (category.children && category.children.length > 0) {
+        const found = findCategoryById(targetId, category.children);
+        if (found) {
+          return found;
+        }
+      }
+    }
+    return null;
+  }, []);
+
+  // Get current category ID from URL to highlight active category
+  const getCurrentCategoryId = useCallback((): number | null => {
+    const path = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
+    const match = path.match(/\/category\/(\d+)/);
+    return match ? parseInt(match[1]) : null;
+  }, [pathname]);
+
   // Auto-expand categories based on current URL when categories load or URL changes
   useEffect(() => {
     if (categories.length > 0 && pathname !== lastPathname.current) {
@@ -71,9 +114,7 @@ export default function Sidebar() {
         }
       }
     }
-  }, [categories, pathname]); // Only depend on categories and pathname
-
-
+  }, [categories, pathname, findCategoryById, findCategoryPath, getCurrentCategoryId]); // Include all dependencies
 
   const toggleCategory = (categoryId: number) => {
     const newExpanded = new Set(expandedCategories);
@@ -88,49 +129,6 @@ export default function Sidebar() {
   const generateCategoryLink = (category: Category): string => {
     // Use category ID for the new ID-based routing system
     return `/category/${category.id}`;
-  };
-
-  // Find the path from root to a specific category (returns array of category IDs)
-  const findCategoryPath = (targetId: number, categories: Category[], currentPath: number[] = []): number[] => {
-    for (const category of categories) {
-      const newPath = [...currentPath, category.id];
-
-      if (category.id === targetId) {
-        return newPath;
-      }
-
-      if (category.children && category.children.length > 0) {
-        const childPath = findCategoryPath(targetId, category.children, newPath);
-        if (childPath.length > 0) {
-          return childPath;
-        }
-      }
-    }
-    return [];
-  };
-
-  // Find a category by ID in the categories tree
-  const findCategoryById = (targetId: number, categories: Category[]): Category | null => {
-    for (const category of categories) {
-      if (category.id === targetId) {
-        return category;
-      }
-
-      if (category.children && category.children.length > 0) {
-        const found = findCategoryById(targetId, category.children);
-        if (found) {
-          return found;
-        }
-      }
-    }
-    return null;
-  };
-
-  // Get current category ID from URL to highlight active category
-  const getCurrentCategoryId = (): number | null => {
-    const path = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
-    const match = path.match(/\/category\/(\d+)/);
-    return match ? parseInt(match[1]) : null;
   };
 
   // Check if a category is in the current active path

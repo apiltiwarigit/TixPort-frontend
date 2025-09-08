@@ -128,49 +128,62 @@ export function useEventsData({
 
         // Create the request promise
         const requestPromise = eventsApi.getEvents(filters, page, limit).then(response => {
-          // Transform the API response to match our Event interface
-          const transformedEvents: Event[] = response.data.events.map((event: any) => {
+        // Transform the API response to match our Event interface
+        const transformedEvents: Event[] = (response.data.events as unknown as Array<Record<string, unknown>>).map((event: Record<string, unknown>) => {
             const eventDateTime = event.occurs_at_local || event.occurs_at || event.date_time_local;
-            const venueAddress = event.venue?.address || {};
+            const venueAddress = (event.venue as Record<string, unknown>)?.address as Record<string, unknown> || {};
 
             return {
-              id: event.id,
-              name: event.name,
-              date_time_local: eventDateTime,
+              id: event.id as number,
+              name: event.name as string,
+              date_time_local: eventDateTime as string,
               venue: {
-                id: event.venue?.id || 0,
-                name: event.venue?.name || 'TBA',
-                address: venueAddress.street_address || '',
-                city: venueAddress.locality || venueAddress.city || 'TBA',
-                state_province: venueAddress.region || venueAddress.state || 'TBA',
-                country: venueAddress.country_code || 'US',
-                postal_code: venueAddress.postal_code || '',
-                latitude: event.venue?.latitude,
-                longitude: event.venue?.longitude,
+                id: ((event.venue as Record<string, unknown>)?.id as number) || 0,
+                name: ((event.venue as Record<string, unknown>)?.name as string) || 'TBA',
+                address: (venueAddress.street_address as string) || '',
+                city: (venueAddress.locality as string) || (venueAddress.city as string) || 'TBA',
+                state_province: (venueAddress.region as string) || (venueAddress.state as string) || 'TBA',
+                country: (venueAddress.country_code as string) || 'US',
+                postal_code: (venueAddress.postal_code as string) || '',
+                latitude: (event.venue as Record<string, unknown>)?.latitude as number,
+                longitude: (event.venue as Record<string, unknown>)?.longitude as number,
               },
               category: {
-                id: event.category?.id || 0,
-                name: event.category?.name || 'General',
-                parent_id: event.category?.parent?.id,
+                id: ((event.category as Record<string, unknown>)?.id as number) || 0,
+                name: ((event.category as Record<string, unknown>)?.name as string) || 'General',
+                parent_id: (((event.category as Record<string, unknown>)?.parent as Record<string, unknown>)?.id as number),
               },
-              performers: event.performers?.map((performer: any) => ({
-                id: performer.id,
-                name: performer.name,
-                category: {
-                  id: performer.category?.id || 0,
-                  name: performer.category?.name || 'General',
-                },
-                primary: performer.primary || false,
-                home_team: performer.home_team || false,
-                away_team: performer.away_team || false,
-              })) || [],
-              min_ticket_price: event.stats?.min_ticket_price,
-              max_ticket_price: event.stats?.max_ticket_price,
-              url: event.url || '',
+              performers: (event.performers as Array<Record<string, unknown>>)?.map((performer: unknown) => {
+                const p = performer as { 
+                  id: number; 
+                  name: string; 
+                  category?: { 
+                    id?: number; 
+                    name?: string; 
+                  }; 
+                  primary?: boolean; 
+                  home_team?: boolean; 
+                  away_team?: boolean; 
+                };
+                return {
+                  id: p.id,
+                  name: p.name,
+                  category: {
+                    id: p.category?.id || 0,
+                    name: p.category?.name || 'General',
+                  },
+                  primary: p.primary || false,
+                  home_team: p.home_team || false,
+                  away_team: p.away_team || false,
+                };
+              }) || [],
+              min_ticket_price: ((event.stats as Record<string, unknown>)?.min_ticket_price as number),
+              max_ticket_price: ((event.stats as Record<string, unknown>)?.max_ticket_price as number),
+              url: (event.url as string) || '',
               // Derived fields for backward compatibility
-              date: eventDateTime ? new Date(eventDateTime).toLocaleDateString() : 'TBA',
-              time: eventDateTime ? new Date(eventDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'TBA',
-              location: `${venueAddress.locality || venueAddress.city || 'TBA'}, ${venueAddress.region || venueAddress.state || 'TBA'}`,
+              date: eventDateTime ? new Date(eventDateTime as string).toLocaleDateString() : 'TBA',
+              time: eventDateTime ? new Date(eventDateTime as string).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'TBA',
+              location: `${(venueAddress.locality as string) || (venueAddress.city as string) || 'TBA'}, ${(venueAddress.region as string) || (venueAddress.state as string) || 'TBA'}`,
             };
           });
 
@@ -193,9 +206,10 @@ export function useEventsData({
         setEvents(transformedEvents);
         setError(null);
 
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error fetching events:', err);
-        const errorMessage = err?.response?.data?.message || err?.message || 'Failed to load events';
+        const errorMessage = (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+                            (err as { message?: string })?.message || 'Failed to load events';
         setError(errorMessage);
         setEvents([]);
         

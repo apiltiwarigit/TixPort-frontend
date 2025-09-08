@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   PhotoIcon,
@@ -26,7 +27,7 @@ interface HeroSection {
 }
 
 export default function AdminHeroSectionsPage() {
-  const { user } = useAuth();
+  const { } = useAuth();
   const [heroSections, setHeroSections] = useState<HeroSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -276,9 +277,11 @@ export default function AdminHeroSectionsPage() {
             <div key={section.id} className="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden">
               {section.image_url ? (
                 <div className="aspect-video bg-gray-700 flex items-center justify-center">
-                  <img
+                  <Image
                     src={section.image_url}
                     alt={section.title}
+                    width={400}
+                    height={225}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -487,7 +490,13 @@ export default function AdminHeroSectionsPage() {
               {selectedSection.image_url && (
                 <div>
                   <span className="text-gray-400">Image:</span>
-                  <img src={selectedSection.image_url} alt={selectedSection.title} className="mt-2 rounded max-h-64 object-cover w-full" />
+                  <Image 
+                    src={selectedSection.image_url} 
+                    alt={selectedSection.title} 
+                    width={400}
+                    height={256}
+                    className="mt-2 rounded max-h-64 object-cover w-full" 
+                  />
                 </div>
               )}
               <div><span className="text-gray-400">Order:</span> {selectedSection.display_order}</div>

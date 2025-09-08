@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Event, EventsResponse, TicketsResponse, EventFilters } from '@/types';
+import { EventsResponse, TicketsResponse, EventFilters } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
 
@@ -7,10 +7,10 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (token: string) => void;
-  reject: (error: any) => void;
+  reject: (error: unknown) => void;
 }> = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach(({ resolve, reject }) => {
     if (error) {
       reject(error);
@@ -42,7 +42,7 @@ const getStoredSession = () => {
 };
 
 // Helper function to store session
-const storeSession = (session: any) => {
+const storeSession = (session: unknown) => {
   if (typeof window === 'undefined') return;
   if (session) {
     localStorage.setItem('auth_session', JSON.stringify(session));
@@ -207,7 +207,7 @@ export const categoriesApi = {
 
 
   // Get events for a specific category
-  getCategoryEvents: async (id: string | number, page = 1, limit = 20, filters?: any) => {
+  getCategoryEvents: async (id: string | number, page = 1, limit = 20, filters?: Record<string, unknown>) => {
     const params = new URLSearchParams();
     params.append('page', page.toString());
     params.append('limit', limit.toString());

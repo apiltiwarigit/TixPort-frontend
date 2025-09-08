@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { categoriesApi } from '@/lib/api';
 
 interface Category {
@@ -33,7 +33,7 @@ export function CategoryProvider({ children }: CategoryProviderProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -52,16 +52,16 @@ export function CategoryProvider({ children }: CategoryProviderProps) {
       
       setCategories(transformedCategories);
       console.log(`✅ CategoryContext: Loaded ${categoriesList.length} categories (${transformedCategories.length} root categories)`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ CategoryContext: Error fetching categories:', err);
-      setError(err.message || 'Failed to load categories');
+      setError((err as Error).message || 'Failed to load categories');
       setCategories([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const transformCategoriesToTree = (categories: any[]): Category[] => {
+  const transformCategoriesToTree = (categories: Array<Record<string, unknown>>): Category[] => {
     const categoryMap = new Map<number, Category>();
     const rootCategories: Category[] = [];
 
@@ -69,12 +69,12 @@ export function CategoryProvider({ children }: CategoryProviderProps) {
     categories.forEach((cat) => {
       const category: Category = {
         id: Number(cat.id),
-        name: cat.name,
-        slug: cat.slug || cat.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+        name: cat.name as string,
+        slug: (cat.slug as string) || (cat.name as string).toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
         parent: cat.parent ? {
-          id: Number(cat.parent.id),
-          name: cat.parent.name,
-          slug: cat.parent.slug || cat.parent.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+          id: Number((cat.parent as Record<string, unknown>).id),
+          name: (cat.parent as Record<string, unknown>).name as string,
+          slug: ((cat.parent as Record<string, unknown>).slug as string) || ((cat.parent as Record<string, unknown>).name as string).toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
         } : undefined,
         children: []
       };
@@ -117,7 +117,7 @@ export function CategoryProvider({ children }: CategoryProviderProps) {
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [fetchCategories]);
 
   const value: CategoryContextType = {
     categories,

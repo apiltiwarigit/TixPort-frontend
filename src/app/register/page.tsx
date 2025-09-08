@@ -36,7 +36,6 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [hasError, setHasError] = useState(false);
 
   const { signUp } = useAuth();
   const router = useRouter();
@@ -50,7 +49,6 @@ export default function RegisterPage() {
     // Clear error and success when user starts typing
     if (error) {
       setError(null);
-      setHasError(false);
     }
     if (success) setSuccess(null);
   };
@@ -63,13 +61,11 @@ export default function RegisterPage() {
     // Validation
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
-      setHasError(true);
       return;
     }
 
     if (!formData.agreeToTerms) {
       setError('You must agree to the Terms of Service');
-      setHasError(true);
       return;
     }
 
@@ -83,7 +79,6 @@ export default function RegisterPage() {
     const failedRequirement = passwordRequirements.find(req => !req.test);
     if (failedRequirement) {
       setError(failedRequirement.message);
-      setHasError(true);
       return;
     }
 
@@ -99,7 +94,6 @@ export default function RegisterPage() {
 
       if (signUpError) {
         setError(signUpError.message || 'Failed to create account');
-        setHasError(true);
         setIsLoading(false);
         return;
       } else {
@@ -109,9 +103,8 @@ export default function RegisterPage() {
           router.push('/');
         }, 1500);
       }
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
-      setHasError(true);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
       setIsLoading(false);
       return;
     }
@@ -155,7 +148,6 @@ export default function RegisterPage() {
                     <button
                       onClick={() => {
                         setError(null);
-                        setHasError(false);
                       }}
                       className="text-red-300 hover:text-red-200 text-xs mt-1 underline"
                     >

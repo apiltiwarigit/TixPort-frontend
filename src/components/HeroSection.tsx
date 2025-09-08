@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 
 interface HeroSection {
@@ -20,7 +21,6 @@ export default function HeroSection() {
   const [imageError, setImageError] = useState(false);
   const [featuredEvents, setFeaturedEvents] = useState<HeroSection[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   // Fetch hero sections from API
   useEffect(() => {
@@ -38,7 +38,6 @@ export default function HeroSection() {
         
         if (data.success && data.data.length > 0) {
           setFeaturedEvents(data.data);
-          setError(null);
         } else {
           // Fallback to default hero sections if no data
           setFeaturedEvents([
@@ -57,7 +56,6 @@ export default function HeroSection() {
         }
       } catch (err) {
         console.error('Error fetching hero sections:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load hero sections');
         
         // Fallback to default hero section on error
         setFeaturedEvents([
@@ -217,14 +215,14 @@ export default function HeroSection() {
                 </div>
               </div>
             ) : (
-              <img
+              <Image
                 key={`img-${currentSlide}`}
                 src={featuredEvents[currentSlide].image_url}
                 alt={featuredEvents[currentSlide].title}
+                width={1200}
+                height={800}
                 className="w-full h-full object-cover transition-all duration-700 ease-in-out transform group-hover:scale-110 hero-image image-enhanced opacity-100 scale-100"
-                loading="eager"
-                decoding="async"
-                sizes="(max-width: 1024px) 0px, 360px"
+                priority
                 onError={handleImageError}
               />
             )}

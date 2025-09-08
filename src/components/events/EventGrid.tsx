@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+// import { ReactNode } from 'react';
 import { EventCard, EventData } from './EventCard';
 import { LoadingCard, EmptyEvents } from '@/components/ui';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';

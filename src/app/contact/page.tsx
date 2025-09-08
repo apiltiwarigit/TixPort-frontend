@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { configService } from '@/lib/configService';
 import { PageContainer } from '@/components/layout';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
+import { Card, CardContent } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { Input, Select, Textarea } from '@/components/ui';
 import {
@@ -117,7 +117,7 @@ export default function ContactPage() {
           Contact Us
         </h1>
         <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-          Have a question? Need help with your tickets? We're here to help!
+          Have a question? Need help with your tickets? We&apos;re here to help!
         </p>
       </div>
 
@@ -170,7 +170,7 @@ export default function ContactPage() {
                 <CheckCircleIcon className="h-16 w-16 text-green-500 mx-auto mb-4" />
                 <h3 className="text-xl font-bold text-white mb-2">Message Sent!</h3>
                 <p className="text-green-400">
-                  Thank you for contacting us. We'll get back to you within 24 hours.
+                  Thank you for contacting us. We&apos;ll get back to you within 24 hours.
                 </p>
               </CardContent>
             </Card>

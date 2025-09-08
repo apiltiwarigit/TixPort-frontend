@@ -1,6 +1,6 @@
 'use client'
 
-import { loadStripe } from '@stripe/stripe-js'
+import { loadStripe, Stripe } from '@stripe/stripe-js'
 import { Elements } from '@stripe/react-stripe-js'
 import { useEffect, useState } from 'react'
 
@@ -8,7 +8,7 @@ interface StripeProviderProps {
   children: React.ReactNode
 }
 
-let stripePromise: Promise<any> | null = null
+let stripePromise: Promise<Stripe | null> | null = null
 
 export default function StripeProvider({ children }: StripeProviderProps) {
   const [publishableKey, setPublishableKey] = useState<string | null>(null)

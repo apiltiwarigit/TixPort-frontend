@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   TagIcon,
@@ -24,7 +24,7 @@ interface Category {
 }
 
 export default function AdminCategoriesPage() {
-  const { user } = useAuth();
+  const { } = useAuth();
   // Flat list for stats and utilities
   const [categories, setCategories] = useState<Category[]>([]);
   // Tree list for rendering
@@ -34,11 +34,7 @@ export default function AdminCategoriesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
       const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
@@ -67,7 +63,11 @@ export default function AdminCategoriesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   const syncCategories = async () => {
     try {

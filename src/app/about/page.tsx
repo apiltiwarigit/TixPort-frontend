@@ -1,8 +1,9 @@
 'use client';
 
 import { PageContainer } from '@/components/layout';
-import { Button } from '@/components/ui';
+// import { Button } from '@/components/ui';
 import TopCounters from '@/components/TopCounters';
+import Image from 'next/image';
 import {
   InformationCircleIcon,
   ShieldCheckIcon,
@@ -77,7 +78,7 @@ export default function AboutPage() {
               About TixPort
             </h1>
             <p className="text-gray-400 text-lg sm:text-xl max-w-3xl mx-auto leading-relaxed">
-              We're revolutionizing the way people discover, buy, and experience live events.
+              We&apos;re revolutionizing the way people discover, buy, and experience live events.
               Our mission is to make ticket buying simple, secure, and accessible to everyone.
             </p>
           </div>
@@ -112,7 +113,7 @@ export default function AboutPage() {
                   ticket purchasing processes and decided to build a better solution.
                 </p>
                 <p>
-                  Today, we're proud to be the trusted marketplace for millions of fans worldwide, connecting
+                  Today, we&apos;re proud to be the trusted marketplace for millions of fans worldwide, connecting
                   people with unforgettable experiences while ensuring every transaction is secure and every
                   ticket is authentic.
                 </p>
@@ -123,9 +124,11 @@ export default function AboutPage() {
                 </p>
               </div>
               <div className="relative">
-                <img
+                <Image
                   src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=600&h=400&fit=crop"
                   alt="Concert crowd"
+                  width={600}
+                  height={400}
                   className="w-full h-64 sm:h-80 object-cover rounded-xl"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent rounded-xl"></div>
@@ -161,9 +164,11 @@ export default function AboutPage() {
                   className="bg-gray-800 border border-gray-700 rounded-xl p-6 text-center hover-lift transition-all duration-300 animate-fade-in-up"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
-                  <img
+                  <Image
                     src={member.image}
                     alt={member.name}
+                    width={150}
+                    height={150}
                     className="w-20 h-20 sm:w-24 sm:h-24 rounded-full mx-auto mb-4 object-cover border-2 border-purple-500"
                   />
                   <h3 className="text-lg sm:text-xl font-bold text-white mb-1">{member.name}</h3>
@@ -197,7 +202,7 @@ export default function AboutPage() {
                   <CheckBadgeIcon className="h-6 w-6 text-green-500 mt-1 flex-shrink-0" />
                   <div>
                     <h4 className="text-white font-semibold mb-1">Best Price Guarantee</h4>
-                    <p className="text-gray-400 text-sm">Find the best deals or we'll match the price.</p>
+                    <p className="text-gray-400 text-sm">Find the best deals or we&apos;ll match the price.</p>
                   </div>
                 </div>
               </div>

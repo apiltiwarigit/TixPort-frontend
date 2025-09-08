@@ -27,7 +27,6 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [hasError, setHasError] = useState(false);
 
   const { signIn } = useAuth();
   const router = useRouter();
@@ -41,7 +40,6 @@ export default function LoginPage() {
     // Clear error and success when user starts typing
     if (error) {
       setError(null);
-      setHasError(false);
     }
     if (success) setSuccess(null);
   };
@@ -50,7 +48,6 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-    setHasError(false);
     setIsLoading(true);
 
     try {
@@ -58,7 +55,6 @@ export default function LoginPage() {
 
       if (signInError) {
         setError(signInError.message || 'Failed to sign in');
-        setHasError(true);
         setIsLoading(false);
         return;
       } else {
@@ -68,9 +64,8 @@ export default function LoginPage() {
           router.push('/');
         }, 1000);
       }
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
-      setHasError(true);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
       setIsLoading(false);
       return;
     }
@@ -102,7 +97,6 @@ export default function LoginPage() {
                       <button
                         onClick={() => {
                           setError(null);
-                          setHasError(false);
                         }}
                         className="text-red-300 hover:text-red-200 text-xs mt-1 underline"
                       >
@@ -241,7 +235,7 @@ export default function LoginPage() {
 
               <div className="mt-8 text-center">
                 <p className="text-gray-400 text-sm">
-                  Don't have an account?{' '}
+                  Don&apos;t have an account?{' '}
                   <Link
                     href="/register"
                     className="text-purple-400 hover:text-purple-300 font-medium transition-colors"

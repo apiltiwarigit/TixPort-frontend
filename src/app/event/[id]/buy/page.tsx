@@ -25,7 +25,7 @@ interface Event {
   id: string
   title: string
   date: string
-  venue: string | { name: string; [key: string]: any }
+  venue: string | { name: string; [key: string]: unknown }
   city: string
   state: string
   description: string
@@ -86,7 +86,7 @@ export default function EventBuyPage() {
   const params = useParams()
   const router = useRouter()
   const eventId = params.id as string
-  const { user } = useAuth()
+  const { } = useAuth()
   const [event, setEvent] = useState<Event | null>(null)
   const [seatmapData, setSeatmapData] = useState<SeatmapData | null>(null)
   const [ticketGroups, setTicketGroups] = useState<TicketGroup[]>([])
@@ -98,7 +98,7 @@ export default function EventBuyPage() {
   const [showSeatmap, setShowSeatmap] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [currentStep, setCurrentStep] = useState<'select' | 'review' | 'checkout' | 'success'>('select')
-  const [orderData, setOrderData] = useState<any>(null)
+  const [orderData, setOrderData] = useState<Record<string, unknown> | null>(null)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [dataFetched, setDataFetched] = useState(false)
   const fetchedRef = useRef<string | null>(null)
@@ -204,15 +204,15 @@ export default function EventBuyPage() {
           // Exclude parking tickets from seatmap data
           const priceField = event?.requirements?.inclusive_pricing ? 'retail_price_inclusive' : 'retail_price'
           const allGroups = (ticketGroupsData.data.ticketGroups || [])
-            .filter((group: any) => group.type !== 'parking') // Exclude parking tickets
-            .map((group: any) => ({
+            .filter((group: Record<string, unknown>) => group.type !== 'parking') // Exclude parking tickets
+            .map((group: Record<string, unknown>) => ({
               ...group,
               tevo_section_name: group.tevo_section_name || group.section,
               price: group[priceField] || group.retail_price || group.wholesale_price || group.price || 0
             }))
 
           console.log(`📊 Processing ${allGroups.length} ticket groups (no deduplication)`)
-          console.log(`📍 Sample tevo_section_name mapping:`, allGroups.slice(0, 3).map((g: any) => ({
+          console.log(`📍 Sample tevo_section_name mapping:`, allGroups.slice(0, 3).map((g: Record<string, unknown>) => ({
             section: g.section,
             tevo_section_name: g.tevo_section_name,
             type: g.type,
@@ -325,10 +325,10 @@ export default function EventBuyPage() {
     setSelectedTickets([newSelectedTicket])
   }
 
-  // Remove ticket from selected list
-  const removeTicketFromSelection = (ticketGroupId: number) => {
-    setSelectedTickets(prev => prev.filter(ticket => ticket.ticketGroupId !== ticketGroupId))
-  }
+  // Remove ticket from selected list (currently unused but kept for future functionality)
+  // const removeTicketFromSelection = (ticketGroupId: number) => {
+  //   setSelectedTickets(prev => prev.filter(ticket => ticket.ticketGroupId !== ticketGroupId))
+  // }
 
   // Update ticket quantity
   const updateTicketQuantity = (ticketGroupId: number, newQuantity: number) => {
@@ -381,7 +381,7 @@ export default function EventBuyPage() {
   }
 
   // Handle successful checkout
-  const handleCheckoutSuccess = (orderResult: any) => {
+  const handleCheckoutSuccess = (orderResult: Record<string, unknown>) => {
     setOrderData(orderResult)
     setCurrentStep('success')
   }
@@ -564,7 +564,7 @@ export default function EventBuyPage() {
                         ? event!.venue 
                         : 'Unknown Venue'
                   }}
-                  onSuccess={handleCheckoutSuccess}
+                  onSuccess={(orderData: unknown) => handleCheckoutSuccess(orderData as Record<string, unknown>)}
                   onError={handleCheckoutError}
                 />
               </StripeProvider>
@@ -586,15 +586,15 @@ export default function EventBuyPage() {
                 <div className="text-left space-y-2">
                   <div className="flex justify-between">
                     <span className="text-gray-400">Order ID:</span>
-                    <span className="text-white font-mono">{orderData.orderId}</span>
+                    <span className="text-white font-mono">{orderData.orderId as string}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400">Total:</span>
-                    <span className="text-green-400 font-semibold">${orderData.total?.toFixed(2)}</span>
+                    <span className="text-green-400 font-semibold">${(orderData.total as number)?.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400">Status:</span>
-                    <span className="text-blue-400 capitalize">{orderData.status}</span>
+                    <span className="text-blue-400 capitalize">{orderData.status as string}</span>
                   </div>
                 </div>
               </div>

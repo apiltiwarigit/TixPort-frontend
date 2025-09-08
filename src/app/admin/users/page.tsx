@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   UsersIcon,
@@ -28,11 +28,7 @@ export default function AdminUsersPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
@@ -58,7 +54,11 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [session?.access_token]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -195,7 +195,7 @@ export default function AdminUsersPage() {
                         <span className="px-3 py-1 bg-gray-700 text-white text-sm rounded">
                           {listedUser.role || 'user'}
                         </span>
-                        {listedUser.role !== 'owner' && listedUser.id !== currentUser?.id && (profile as any)?.role === 'owner' && (
+                        {listedUser.role !== 'owner' && listedUser.id !== currentUser?.id && profile?.role === 'owner' && (
                           <button
                             onClick={() => openRoleModal(listedUser)}
                             className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"

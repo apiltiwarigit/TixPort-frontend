@@ -18,7 +18,7 @@ interface ConfigSetting {
 }
 
 export default function AdminSettingsPage() {
-  const { user } = useAuth();
+  const { } = useAuth();
   const [settings, setSettings] = useState<ConfigSetting[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -48,9 +48,9 @@ export default function AdminSettingsPage() {
         const data = await response.json();
         const list = Array.isArray(data.data) ? data.data : [];
         // Map backend fields -> frontend model and infer type from config_type/config_value
-        const mapped: ConfigSetting[] = list.map((item: any) => {
+        const mapped: ConfigSetting[] = list.map((item: { config_key: string; config_value: unknown; description?: string; config_type?: string; updated_at?: string; updatedAt?: string }) => {
           const key: string = item.config_key;
-          const rawValue: any = item.config_value;
+          const rawValue: unknown = item.config_value;
           const desc: string | undefined = item.description || undefined;
           const configType: string = item.config_type || typeof rawValue;
           let type: 'string' | 'number' | 'boolean' | 'json' = 'string';
@@ -85,7 +85,7 @@ export default function AdminSettingsPage() {
       const session = JSON.parse(token);
       // Find the setting to parse according to its type
       const setting = settings.find(s => s.key === key);
-      let parsedValue: any = value;
+      let parsedValue: unknown = value;
       if (setting) {
         switch (setting.type) {
           case 'number':

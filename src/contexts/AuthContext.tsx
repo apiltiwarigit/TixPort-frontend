@@ -6,7 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 interface User {
   id: string;
   email: string;
-  user_metadata?: any;
+  user_metadata?: Record<string, unknown>;
   phone?: string;
 }
 
@@ -42,9 +42,9 @@ interface AuthContextType {
   initialized: boolean;
   isAuthenticating: boolean; // New flag for user-initiated auth actions
   signIn: (email: string, password: string) => Promise<{ error?: AuthError }>;
-  signUp: (email: string, password: string, metadata?: any) => Promise<{ error?: AuthError }>;
+  signUp: (email: string, password: string, metadata?: Record<string, unknown>) => Promise<{ error?: AuthError }>;
   signOut: () => Promise<void>;
-  updateProfile: (updates: Partial<UserProfile>) => Promise<{ error?: any }>;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<{ error?: unknown }>;
   refreshProfile: () => Promise<void>;
 }
 
@@ -66,14 +66,14 @@ const AUTH_ONLY_ROUTES = [
   '/forgot-password'
 ];
 
-// Routes that are always accessible
-const PUBLIC_ROUTES = [
-  '/',
-  '/about',
-  '/contact',
-  // Category routes are public by default - no need to list them all
-  '/category' // This covers all /category/* routes
-];
+// Routes that are always accessible (currently unused but kept for future functionality)
+// const PUBLIC_ROUTES = [
+//   '/',
+//   '/about',
+//   '/contact',
+//   // Category routes are public by default - no need to list them all
+//   '/category' // This covers all /category/* routes
+// ];
 
 // Helper function to determine route type
 function getRouteType(pathname: string): 'protected' | 'auth-only' | 'public' {
@@ -181,7 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [API_BASE]);
 
   // Fetch user profile with token refresh capability
-  const fetchProfile = useCallback(async (accessToken: string, refreshToken?: string): Promise<{ profile: any; newSession?: Session } | null> => {
+  const fetchProfile = useCallback(async (accessToken: string, refreshToken?: string): Promise<{ profile: UserProfile; newSession?: Session } | null> => {
     try {
       const response = await fetch(`${API_BASE}/auth/profile`, {
         headers: {
@@ -308,7 +308,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [API_BASE]);
 
   // Sign up function
-  const signUp = useCallback(async (email: string, password: string, metadata: any = {}) => {
+  const signUp = useCallback(async (email: string, password: string, metadata: Record<string, unknown> = {}) => {
     setIsAuthenticating(true);
     try {
       const response = await fetch(`${API_BASE}/auth/signup`, {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { categoriesApi, eventsApi } from '@/lib/api';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
@@ -84,11 +84,7 @@ export default function CategoryPage() {
     updateUrlParams({ nearby: !locationBased, page: 1 }); // Reset to page 1 when toggling
   };
 
-  useEffect(() => {
-    loadCategoryData();
-  }, [categoryId, currentPage, locationBased]);
-
-  const loadCategoryData = async () => {
+  const loadCategoryData = useCallback(async () => {
     try {
       setData(prev => ({ ...prev, loading: true, error: null }));
 
@@ -109,7 +105,7 @@ export default function CategoryPage() {
         }
 
         // Load events with location-based filtering
-        const filters: any = {
+        const filters: Record<string, unknown> = {
           only_with_available_tickets: true,
           within: 60, // 60 mile radius
         };
@@ -140,48 +136,48 @@ export default function CategoryPage() {
       }
 
       // Transform events data to match our Event interface
-      const transformedEvents: Event[] = eventsResponse.data.events.map((event: any) => {
+      const transformedEvents: Event[] = eventsResponse.data.events.map((event: Record<string, unknown>) => {
         const eventDateTime = event.occurs_at_local || event.occurs_at || event.date_time_local;
-        const venueAddress = event.venue?.address || {};
+        const venueAddress = (event.venue as Record<string, unknown>)?.address as Record<string, unknown> || {};
 
         return {
-          id: event.id,
-          name: event.name,
-          date_time_local: eventDateTime,
+          id: event.id as number,
+          name: event.name as string,
+          date_time_local: eventDateTime as string,
           venue: {
-            id: event.venue?.id || 0,
-            name: event.venue?.name || 'TBA',
-            address: venueAddress.street_address || '',
-            city: venueAddress.locality || venueAddress.city || 'TBA',
-            state_province: venueAddress.region || venueAddress.state || 'TBA',
-            country: venueAddress.country_code || 'US',
-            postal_code: venueAddress.postal_code || '',
-            latitude: event.venue?.latitude,
-            longitude: event.venue?.longitude,
+            id: ((event.venue as Record<string, unknown>)?.id as number) || 0,
+            name: ((event.venue as Record<string, unknown>)?.name as string) || 'TBA',
+            address: (venueAddress.street_address as string) || '',
+            city: (venueAddress.locality as string) || (venueAddress.city as string) || 'TBA',
+            state_province: (venueAddress.region as string) || (venueAddress.state as string) || 'TBA',
+            country: (venueAddress.country_code as string) || 'US',
+            postal_code: (venueAddress.postal_code as string) || '',
+            latitude: (event.venue as Record<string, unknown>)?.latitude as number,
+            longitude: (event.venue as Record<string, unknown>)?.longitude as number,
           },
           category: {
-            id: event.category?.id || 0,
-            name: event.category?.name || 'General',
-            parent_id: event.category?.parent?.id,
+            id: ((event.category as Record<string, unknown>)?.id as number) || 0,
+            name: ((event.category as Record<string, unknown>)?.name as string) || 'General',
+            parent_id: (((event.category as Record<string, unknown>)?.parent as Record<string, unknown>)?.id as number),
           },
-          performers: event.performers?.map((performer: any) => ({
-            id: performer.id,
-            name: performer.name,
+          performers: (event.performers as Array<Record<string, unknown>>)?.map((performer: Record<string, unknown>) => ({
+            id: performer.id as number,
+            name: performer.name as string,
             category: {
-              id: performer.category?.id || 0,
-              name: performer.category?.name || 'General',
+              id: ((performer.category as Record<string, unknown>)?.id as number) || 0,
+              name: ((performer.category as Record<string, unknown>)?.name as string) || 'General',
             },
-            primary: performer.primary || false,
-            home_team: performer.home_team || false,
-            away_team: performer.away_team || false,
+            primary: (performer.primary as boolean) || false,
+            home_team: (performer.home_team as boolean) || false,
+            away_team: (performer.away_team as boolean) || false,
           })) || [],
-          min_ticket_price: event.stats?.min_ticket_price,
-          max_ticket_price: event.stats?.max_ticket_price,
-          url: event.url || '',
+          min_ticket_price: ((event.stats as Record<string, unknown>)?.min_ticket_price as number),
+          max_ticket_price: ((event.stats as Record<string, unknown>)?.max_ticket_price as number),
+          url: (event.url as string) || '',
           // Derived fields for backward compatibility
-          date: eventDateTime ? new Date(eventDateTime).toLocaleDateString() : 'TBA',
-          time: eventDateTime ? new Date(eventDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'TBA',
-          location: `${venueAddress.locality || venueAddress.city || 'TBA'}, ${venueAddress.region || venueAddress.state || 'TBA'}`,
+          date: eventDateTime ? new Date(eventDateTime as string).toLocaleDateString() : 'TBA',
+          time: eventDateTime ? new Date(eventDateTime as string).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'TBA',
+          location: `${(venueAddress.locality as string) || (venueAddress.city as string) || 'TBA'}, ${(venueAddress.region as string) || (venueAddress.state as string) || 'TBA'}`,
         };
       });
 
@@ -230,18 +226,19 @@ export default function CategoryPage() {
         pagination: eventsResponse.data.pagination
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error loading events data:', error);
       setData(prev => ({
         ...prev,
         loading: false,
-        error: error.message || 'Failed to load events data'
+        error: (error as Error).message || 'Failed to load events data'
       }));
     }
-  };
+  }, [categoryId, currentPage, locationBased, location]);
 
-
-
+  useEffect(() => {
+    loadCategoryData();
+  }, [loadCategoryData]);
 
   if (data.loading) {
     return (

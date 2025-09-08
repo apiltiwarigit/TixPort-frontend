@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { configService } from '@/lib/configService';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -9,7 +9,6 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon,
   EyeIcon,
-  EyeSlashIcon,
   MagnifyingGlassIcon,
   ArrowPathIcon,
   CubeIcon,
@@ -38,7 +37,7 @@ interface FeaturedCategory {
 }
 
 export default function AdminFeaturedCategoriesPage() {
-  const { user } = useAuth();
+  const { } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [featuredCategories, setFeaturedCategories] = useState<FeaturedCategory[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
@@ -48,18 +47,7 @@ export default function AdminFeaturedCategoriesPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [limits, setLimits] = useState<{ min: number; max: number }>({ min: 1, max: 4 });
 
-  useEffect(() => {
-    const init = async () => {
-      const minCfg = await configService.getValue('min_homepage_categories', 1);
-      const maxCfg = await configService.getValue('max_homepage_categories', 4);
-      const toNum = (v: any, d: number) => (typeof v === 'number' ? v : parseInt(String(v)) || d);
-      setLimits({ min: toNum(minCfg, 1), max: toNum(maxCfg, 4) });
-      await fetchData();
-    };
-    init();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       await Promise.all([fetchCategories(), fetchFeaturedCategories()]);
@@ -68,7 +56,18 @@ export default function AdminFeaturedCategoriesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const init = async () => {
+      const minCfg = await configService.getValue('min_homepage_categories', 1);
+      const maxCfg = await configService.getValue('max_homepage_categories', 4);
+      const toNum = (v: unknown, d: number) => (typeof v === 'number' ? v : parseInt(String(v)) || d);
+      setLimits({ min: toNum(minCfg, 1), max: toNum(maxCfg, 4) });
+      await fetchData();
+    };
+    init();
+  }, [fetchData]);
 
   const fetchCategories = async () => {
     try {
