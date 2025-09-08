@@ -15,7 +15,8 @@ import {
   InformationCircleIcon,
   MapPinIcon,
   ExclamationTriangleIcon,
-  ChevronDownIcon
+  ChevronDownIcon,
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline';
 import { useLocation } from '@/contexts/LocationContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -39,6 +40,9 @@ export default function Header() {
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
   const { location, loading, error, formatLocation } = useLocation();
   const { user, profile, signOut } = useAuth();
+
+  // Check if user has admin role
+  const isAdmin = user && (profile?.role === 'admin' || profile?.role === 'owner');
   // Use cached categories from context
   const { categories, loading: categoriesLoading } = useCategories();
 
@@ -233,6 +237,12 @@ export default function Header() {
                   <span className="text-gray-300 text-sm font-medium">
                     Welcome, {profile?.first_name || user.email?.split('@')[0] || 'User'}
                   </span>
+                  {isAdmin && (
+                    <Link href="/admin" className="text-gray-300 hover:text-white text-sm font-medium flex items-center space-x-1 transform transition-all duration-300 hover:scale-105">
+                      <ShieldCheckIcon className="h-4 w-4" />
+                      <span>Admin</span>
+                    </Link>
+                  )}
                   <button
                     onClick={() => signOut()}
                     className="text-gray-300 hover:text-white text-sm font-medium transform transition-all duration-300 hover:scale-105"
@@ -346,6 +356,12 @@ export default function Header() {
                     <div className="text-white py-2 text-sm font-medium">
                       {profile?.first_name || user.email?.split('@')[0] || 'User'}
                     </div>
+                    {isAdmin && (
+                      <Link href="/admin" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors flex items-center" onClick={() => setIsMenuOpen(false)}>
+                        <ShieldCheckIcon className="h-4 w-4 mr-2" />
+                        Admin Panel
+                      </Link>
+                    )}
                     <button
                       onClick={() => {
                         signOut();

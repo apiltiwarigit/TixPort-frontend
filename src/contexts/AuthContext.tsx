@@ -24,6 +24,7 @@ interface UserProfile {
   phone?: string;
   avatar_url?: string;
   newsletter_subscribed?: boolean;
+  role?: string;
   created_at?: string;
   updated_at?: string;
 }
