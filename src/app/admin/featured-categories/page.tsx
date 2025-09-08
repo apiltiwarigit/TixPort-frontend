@@ -87,6 +87,7 @@ export default function AdminFeaturedCategoriesPage() {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('All categories data:', data.data);
         setCategories(data.data || []);
       }
     } catch (error) {
@@ -118,6 +119,8 @@ export default function AdminFeaturedCategoriesPage() {
           .filter((f: FeaturedCategory) => f.is_active)
           .sort((a: FeaturedCategory, b: FeaturedCategory) => a.display_order - b.display_order)
           .map((f: FeaturedCategory) => f.categories.id);
+        console.log('Featured categories data:', featured);
+        console.log('Active IDs extracted:', activeIds);
         setSelectedCategoryIds(activeIds);
       }
     } catch (error) {
@@ -199,7 +202,10 @@ export default function AdminFeaturedCategoriesPage() {
   };
 
   const getCategoryById = (id: number) => {
-    return categories.find(cat => cat.id === id);
+    console.log('Looking for category ID:', id, 'in categories:', categories.map(c => ({ id: c.id, name: c.name })));
+    const found = categories.find(cat => cat.id === id);
+    console.log('Found category:', found);
+    return found;
   };
 
   const availableCategories = categories.filter(cat => 

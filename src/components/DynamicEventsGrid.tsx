@@ -19,6 +19,7 @@ export default function DynamicEventsGrid() {
   const [homepageCategories, setHomepageCategories] = useState<HomepageCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchHomepageCategories = async () => {
@@ -36,43 +37,18 @@ export default function DynamicEventsGrid() {
         if (data.success && data.data.length > 0) {
           setHomepageCategories(data.data);
           setError(null);
+          setInfo(null);
         } else {
-          // Fallback to default categories if no admin configuration
-          const maxCfg = await configService.getValue('max_homepage_categories', 4);
-          const max = typeof maxCfg === 'number' ? maxCfg : parseInt(String(maxCfg)) || 4;
-          const defaults = [
-            { id: 'fallback-1', display_order: 1, is_active: true, categories: { id: 0, name: 'Concerts', slug: 'concerts' } },
-            { id: 'fallback-2', display_order: 2, is_active: true, categories: { id: 0, name: 'Sports', slug: 'sports' } },
-            { id: 'fallback-3', display_order: 3, is_active: true, categories: { id: 0, name: 'Theatre', slug: 'theatre' } },
-            { id: 'fallback-4', display_order: 4, is_active: true, categories: { id: 0, name: 'Comedy', slug: 'comedy' } },
-          ];
-          setHomepageCategories(defaults.slice(0, Math.max(1, Math.min(max, 4))));
+          // No categories configured - show informational message
+          setHomepageCategories([]);
+          setError(null);
+          setInfo('No featured categories configured. Please contact an administrator.');
         }
       } catch (err) {
         console.error('Error fetching homepage categories:', err);
         setError(err instanceof Error ? err.message : 'Failed to load categories');
-        
-        // Fallback to default categories on error
-        setHomepageCategories([
-          {
-            id: 'error-fallback-1',
-            display_order: 1,
-            is_active: true,
-            categories: { id: 0, name: 'Concerts', slug: 'concerts' }
-          },
-          {
-            id: 'error-fallback-2',
-            display_order: 2,
-            is_active: true,
-            categories: { id: 0, name: 'Sports', slug: 'sports' }
-          },
-          {
-            id: 'error-fallback-3',
-            display_order: 3,
-            is_active: true,
-            categories: { id: 0, name: 'Theatre', slug: 'theatre' }
-          }
-        ]);
+        setInfo(null);
+        setHomepageCategories([]);
       } finally {
         setLoading(false);
       }
@@ -113,6 +89,22 @@ export default function DynamicEventsGrid() {
           </div>
           <h3 className="text-white font-semibold mb-2">Failed to Load Categories</h3>
           <p className="text-gray-400 text-sm">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (info && homepageCategories.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <div className="bg-blue-900/20 border border-blue-800 rounded-lg p-6 max-w-md mx-auto">
+          <div className="text-blue-400 mb-2">
+            <svg className="w-8 h-8 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <h3 className="text-white font-semibold mb-2">Information</h3>
+          <p className="text-gray-400 text-sm">{info}</p>
         </div>
       </div>
     );
