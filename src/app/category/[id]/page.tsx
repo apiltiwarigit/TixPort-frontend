@@ -10,6 +10,7 @@ import TopCounters from '@/components/TopCounters';
 import { Pagination } from '@/components/ui';
 import { GridEventCard } from '@/components/EventCard';
 import { Event, Category } from '@/types';
+import { configService } from '@/lib/configService';
 import { useLocation } from '@/contexts/LocationContext';
 
 interface CategoryPageData {
@@ -107,7 +108,7 @@ export default function CategoryPage() {
         // Load events with location-based filtering
         const filters: Record<string, unknown> = {
           only_with_available_tickets: true,
-          within: 60, // 60 mile radius
+          within: await configService.getLocationSearchRadius(),
         };
 
         // Only add category filter for specific categories, not for "all"
@@ -115,14 +116,21 @@ export default function CategoryPage() {
           filters.category_id = categoryId;
         }
 
-        // Use IP-based geolocation for location-based filtering
-        // Use the actual IP from location context if available, otherwise use 'auto'
-        if (location && location.ip && location.ip !== 'Unknown') {
+        // Priority 1: Use precise coordinates if available (browser geolocation)
+        if (location && location.lat !== undefined && location.lon !== undefined) {
+          filters.lat = location.lat;
+          filters.lon = location.lon;
+          console.log('📍 [Category] Using precise coordinates:', { lat: location.lat, lon: location.lon, source: location.source });
+        } 
+        // Priority 2: Use IP geolocation as fallback
+        else if (location && location.ip && location.ip !== 'Unknown' && location.ip !== 'Browser-Geolocation') {
           filters.ip = location.ip;
-          console.log('📍 [Category] Using IP for geolocation:', location.ip);
-        } else {
+          console.log('📍 [Category] Fallback to IP geolocation:', location.ip);
+        } 
+        // Priority 3: Auto-detect IP if no location available
+        else {
           filters.ip = 'auto';
-          console.log('📍 [Category] No IP available, using auto-detection');
+          console.log('📍 [Category] No location data, using IP auto-detection');
         }
 
         eventsResponse = await eventsApi.getEvents(filters, currentPage, 20);
@@ -484,8 +492,8 @@ export default function CategoryPage() {
                     <span className="text-gray-400">Location: </span>
                     <span className="text-white font-semibold">
                       {location && location.city !== 'Unknown' && location.state !== 'Unknown'
-                        ? `${location.city}, ${location.state} (IP-based)`
-                        : 'IP-based'}
+                        ? `${location.city}, ${location.state}`
+                        : 'Location-based'}
                     </span>
                   </div>
                 )}

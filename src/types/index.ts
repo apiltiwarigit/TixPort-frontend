@@ -100,10 +100,10 @@ export interface EventFilters {
   office_id?: number;              // Show only events for which this office has tickets
   
   // Geolocation parameters
-  lat?: number;                    // Latitude for geolocated searches
-  lon?: number;                    // Longitude for geolocated searches
+  lat?: number;                    // Latitude for geolocated searches (browser coordinates)
+  lon?: number;                    // Longitude for geolocated searches (browser coordinates)
   within?: number;                 // Radius in miles (default 500)
-  ip?: string;                     // Infer location by IP address
+  ip?: string;                     // Infer location by IP address (fallback only)
   postal_code?: string;            // Infer location by postal code
   city_state?: string;             // Infer location by city and state
   country_code?: string;           // ISO 3166 Alpha-2 country code

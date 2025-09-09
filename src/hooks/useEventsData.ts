@@ -100,27 +100,38 @@ export function useEventsData({
           }
         }
         
-        // Use IP geolocation for location-based results
+        // Use location-based filtering with coordinate priority
         filters.only_with_available_tickets = true;
         filters.within = await configService.getLocationSearchRadius();
 
-        // For first page, explicitly request IP geolocation
-        if (!city && !state) {
+        // Priority 1: Use precise coordinates if available (browser geolocation)
+        if (location && location.lat !== undefined && location.lon !== undefined) {
+          filters.lat = location.lat;
+          filters.lon = location.lon;
+          console.log('📍 [useEventsData] Using precise coordinates:', { lat: location.lat, lon: location.lon, source: location.source });
+        } 
+        // Priority 2: Use IP geolocation as fallback
+        else if (location && location.ip && location.ip !== 'Unknown' && location.ip !== 'Browser-Geolocation') {
+          filters.ip = location.ip;
+          console.log('📍 [useEventsData] Fallback to IP geolocation:', location.ip);
+        } 
+        // Priority 3: Auto-detect IP if no location available
+        else {
           filters.ip = 'auto';
-        } else if (city || state) {
+          console.log('📍 [useEventsData] No location data, using IP auto-detection');
+        }
+
+        // Handle city/state search override
+        if (city || state) {
           const locationParts = [];
           if (city) locationParts.push(city);
           if (state) locationParts.push(state);
           filters.q = locationParts.join(', ');
-        }
-
-        // Use IP geolocation - same logic as category page
-        if (location && location.ip && location.ip !== 'Unknown' && location.ip !== 'Browser-Geolocation') {
-          filters.ip = location.ip;
-          console.log('📍 [useEventsData] Using IP for geolocation:', location.ip);
-        } else {
-          filters.ip = 'auto';
-          console.log('📍 [useEventsData] No IP available, using auto-detection');
+          // Remove coordinate filters when doing text search
+          delete filters.lat;
+          delete filters.lon;
+          delete filters.ip;
+          console.log('📍 [useEventsData] Using text search override:', filters.q);
         }
 
         console.log('🎯 [useEventsData] Options received:', { categoryId, city, state });

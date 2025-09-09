@@ -5,6 +5,11 @@ export interface LocationData {
   region: string;
   timezone: string;
   ip: string;
+  // New fields for precise coordinates
+  lat?: number;
+  lon?: number;
+  source?: 'browser' | 'ip' | 'default';
+  accuracy?: 'high' | 'medium' | 'low';
 }
 
 export interface LocationError {
@@ -26,37 +31,45 @@ class LocationService {
       return this.cache;
     }
 
+    // Priority 1: Try browser geolocation first (highest accuracy)
     try {
-      console.log('🔍 [LOCATION] Fetching fresh location from IP services...');
-      // Try multiple IP geolocation services for better reliability
-      const location = await this.fetchLocationWithFallback();
+      console.log('🎯 [LOCATION] Attempting browser geolocation (highest priority)...');
+      const browserLocation = await this.getBrowserLocationWithCoordinates();
+      console.log('✅ [LOCATION] Browser geolocation successful:', browserLocation);
+      
+      // Cache the result
+      this.cache = browserLocation;
+      this.cacheExpiry = Date.now() + this.CACHE_DURATION;
+      
+      return browserLocation;
+    } catch (browserError) {
+      console.log('⚠️ [LOCATION] Browser geolocation failed or denied:', browserError instanceof Error ? browserError.message : String(browserError));
+    }
 
-      console.log('✅ [LOCATION] Successfully detected location:', location);
+    // Priority 2: Fall back to IP geolocation (medium accuracy)
+    try {
+      console.log('🔍 [LOCATION] Falling back to location-based geolocation...');
+      const ipLocation = await this.fetchLocationWithFallback();
+      console.log('✅ [LOCATION] IP geolocation successful:', ipLocation);
 
       // Cache the result
-      this.cache = location;
+      this.cache = ipLocation;
       this.cacheExpiry = Date.now() + this.CACHE_DURATION;
 
-      return location;
-    } catch (error) {
-      console.error('❌ [LOCATION] Location detection failed:', error);
-      console.error('   Error details:', error instanceof Error ? error.message : String(error));
-
-      // Try to get user's browser location as fallback
-      try {
-        console.log('🔄 [LOCATION] Attempting browser geolocation as fallback...');
-        const browserLocation = await this.getBrowserLocation();
-        console.log('✅ [LOCATION] Browser geolocation successful:', browserLocation);
-        return browserLocation;
-      } catch (browserError) {
-        console.error('❌ [LOCATION] Browser geolocation also failed:', browserError instanceof Error ? browserError.message : String(browserError));
-      }
-
-      // Return default location as final fallback
-      const defaultLocation = this.getDefaultLocation();
-      console.log('📍 [LOCATION] Using default location:', defaultLocation);
-      return defaultLocation;
+      return ipLocation;
+    } catch (ipError) {
+      console.error('❌ [LOCATION] IP geolocation failed:', ipError instanceof Error ? ipError.message : String(ipError));
     }
+
+    // Priority 3: Return default location (no coordinates)
+    const defaultLocation = this.getDefaultLocation();
+    console.log('📍 [LOCATION] Using default location (no geolocation available):', defaultLocation);
+    
+    // Cache even the default to avoid repeated failures
+    this.cache = defaultLocation;
+    this.cacheExpiry = Date.now() + (this.CACHE_DURATION / 6); // Shorter cache for default
+    
+    return defaultLocation;
   }
 
   private async fetchLocationWithFallback(): Promise<LocationData> {
@@ -110,7 +123,9 @@ class LocationService {
       country: data.country_name || 'Unknown',
       region: data.region || 'Unknown',
       timezone: data.timezone || 'Unknown',
-      ip: data.ip || 'Unknown'
+      ip: data.ip || 'Unknown',
+      source: 'ip' as const,
+      accuracy: 'medium' as const
     };
 
     console.log('📍 [IPAPI] Processed location:', location);
@@ -142,7 +157,9 @@ class LocationService {
       country: data.country || 'Unknown',
       region: data.region || 'Unknown',
       timezone: data.timezone || 'Unknown',
-      ip: data.ip || 'Unknown'
+      ip: data.ip || 'Unknown',
+      source: 'ip' as const,
+      accuracy: 'medium' as const
     };
 
     console.log('📍 [IPINFO] Processed location:', location);
@@ -172,14 +189,16 @@ class LocationService {
       country: data.country_name || 'Unknown',
       region: data.region || 'Unknown',
       timezone: data.timezone || 'Unknown',
-      ip: data.ip || 'Unknown'
+      ip: data.ip || 'Unknown',
+      source: 'ip' as const,
+      accuracy: 'medium' as const
     };
 
     console.log('📍 [IPAPICO] Processed location:', location);
     return location;
   }
 
-  private async getBrowserLocation(): Promise<LocationData> {
+  private async getBrowserLocationWithCoordinates(): Promise<LocationData> {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
         reject(new Error('Browser geolocation not supported'));
@@ -189,17 +208,32 @@ class LocationService {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           try {
-            // Use reverse geocoding to get city/state from coordinates
-            const { latitude, longitude } = position.coords;
-            console.log('📍 [BROWSER] Got coordinates:', latitude, longitude);
+            // Extract precise coordinates
+            const { latitude, longitude, accuracy } = position.coords;
+            console.log('📍 [BROWSER] Got precise coordinates:', { latitude, longitude, accuracy });
 
-            // Use a reverse geocoding service
+            // Use reverse geocoding to get city/state from coordinates
             const response = await fetch(
               `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
             );
 
             if (!response.ok) {
-              throw new Error('Reverse geocoding failed');
+              console.warn('⚠️ [BROWSER] Reverse geocoding failed, using coordinates only');
+              // Still return coordinates even if reverse geocoding fails
+              const location: LocationData = {
+                city: 'Unknown',
+                state: 'Unknown',
+                country: 'Unknown',
+                region: 'Unknown',
+                timezone: 'Unknown',
+                ip: 'Browser-Geolocation',
+                lat: latitude,
+                lon: longitude,
+                source: 'browser',
+                accuracy: accuracy && accuracy < 100 ? 'high' : 'medium'
+              };
+              resolve(location);
+              return;
             }
 
             const data = await response.json();
@@ -211,7 +245,11 @@ class LocationService {
               country: data.countryName || 'Unknown',
               region: data.principalSubdivision || 'Unknown',
               timezone: data.timeZone?.ianaTimeId || 'Unknown',
-              ip: 'Browser-Geolocation'
+              ip: 'Browser-Geolocation',
+              lat: latitude,
+              lon: longitude,
+              source: 'browser',
+              accuracy: accuracy && accuracy < 100 ? 'high' : 'medium'
             };
 
             resolve(location);
@@ -240,11 +278,17 @@ class LocationService {
         },
         {
           enableHighAccuracy: true,
-          timeout: 10000,
+          timeout: 15000,  // Increased timeout for better accuracy
           maximumAge: 300000 // 5 minutes
         }
       );
     });
+  }
+
+  // Keep the old method for compatibility and testing
+  private async getBrowserLocation(): Promise<LocationData> {
+    // Just call the new method for now
+    return this.getBrowserLocationWithCoordinates();
   }
 
   getDefaultLocation(): LocationData {
@@ -255,7 +299,9 @@ class LocationService {
       country: 'Unknown',
       region: 'Unknown',
       timezone: 'Unknown',
-      ip: 'Unknown'
+      ip: 'Unknown',
+      source: 'default',
+      accuracy: 'low'
     };
   }
 
