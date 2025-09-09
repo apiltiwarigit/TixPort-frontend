@@ -11,33 +11,44 @@ import {
   CheckCircleIcon 
 } from '@heroicons/react/24/outline'
 
-interface CheckoutFormProps {
-  ticketData: {
-    ticketGroupId: number
-    section: string
-    row: string
-    quantity: number
-    pricePerTicket: number
-    totalPrice: number
-    format: string
-  }
-  eventData: {
-    id: string
-    title: string
-    date: string
-    venue: string
-  }
-  onSuccess: (orderData: unknown) => void
-  onError: (error: string) => void
+interface CartItem {
+  ticketGroupId: number;
+  eventId: string;
+  eventTitle: string;
+  eventDate: string;
+  venue: string;
+  section: string;
+  row: string;
+  quantity: number;
+  pricePerTicket: number;
+  totalPrice: number;
+  format: string;
+}
+
+interface CartSummary {
+  subtotal: number;
+  serviceFee: number;
+  deliveryFee: number;
+  discount: number;
+  total: number;
+}
+
+interface CartCheckoutFormProps {
+  cartData: {
+    items: CartItem[];
+    summary: CartSummary;
+  };
+  onSuccess: (orderData: unknown) => void;
+  onError: (error: string) => void;
 }
 
 interface DeliveryOption {
-  type: string
-  cost: number
-  description: string
+  type: string;
+  cost: number;
+  description: string;
 }
 
-export default function CheckoutForm({ ticketData, eventData, onSuccess, onError }: CheckoutFormProps) {
+export default function CartCheckoutForm({ cartData, onSuccess, onError }: CartCheckoutFormProps) {
   const stripe = useStripe()
   const elements = useElements()
   
@@ -65,10 +76,10 @@ export default function CheckoutForm({ ticketData, eventData, onSuccess, onError
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
-  // Calculate order totals
-  const subtotal = ticketData.totalPrice
-  const deliveryCost = selectedDelivery?.cost || 0
-  const totalAmount = subtotal + deliveryCost + taxAmount
+  // Calculate order totals with delivery and tax
+  const subtotal = cartData.summary.subtotal
+  const deliveryCost = selectedDelivery?.cost || cartData.summary.deliveryFee
+  const totalAmount = subtotal + cartData.summary.serviceFee + deliveryCost + taxAmount - cartData.summary.discount
 
   // Get session ID for Riskified fraud protection
   const [sessionId] = useState(() => {
@@ -82,15 +93,19 @@ export default function CheckoutForm({ ticketData, eventData, onSuccess, onError
     try {
       setLoading(true)
       
+      // For cart checkout, we need to calculate for all items
+      // Use the first item's event for delivery calculation
+      const primaryItem = cartData.items[0]
+      
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/checkout/calculate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          eventId: parseInt(eventData.id),
-          ticketGroupId: ticketData.ticketGroupId,
-          quantity: ticketData.quantity,
+          eventId: parseInt(primaryItem.eventId),
+          ticketGroupId: primaryItem.ticketGroupId,
+          quantity: cartData.items.reduce((sum, item) => sum + item.quantity, 0),
           zipCode: formData.zipCode,
           orderAmount: subtotal
         }),
@@ -119,14 +134,14 @@ export default function CheckoutForm({ ticketData, eventData, onSuccess, onError
     } finally {
       setLoading(false)
     }
-  }, [ticketData, formData.zipCode, selectedDelivery, eventData.id, subtotal])
+  }, [cartData.items, formData.zipCode, selectedDelivery, subtotal])
 
   // Load delivery options and calculate taxes when form data changes
   useEffect(() => {
     if (formData.zipCode && formData.zipCode.length === 5) {
       calculateOrderDetails()
     }
-  }, [formData.zipCode, ticketData, calculateOrderDetails])
+  }, [formData.zipCode, calculateOrderDetails])
 
   const validateForm = () => {
     const errors: Record<string, string> = {}
@@ -182,15 +197,16 @@ export default function CheckoutForm({ ticketData, eventData, onSuccess, onError
         throw new Error('Failed to create payment token')
       }
 
-      // Prepare checkout data
+      // Prepare checkout data for multiple items
       const checkoutData = {
         stripeToken: token.id,
         sessionId: sessionId,
-        ticketGroup: {
-          id: ticketData.ticketGroupId,
-          quantity: ticketData.quantity,
-          price: ticketData.pricePerTicket
-        },
+        cartItems: cartData.items.map(item => ({
+          ticketGroupId: item.ticketGroupId,
+          eventId: item.eventId,
+          quantity: item.quantity,
+          price: item.pricePerTicket
+        })),
         buyer: {
           firstName: formData.firstName,
           lastName: formData.lastName,
@@ -208,14 +224,15 @@ export default function CheckoutForm({ ticketData, eventData, onSuccess, onError
           } : undefined
         },
         orderAmount: totalAmount,
-        taxSignature: taxSignature
+        taxSignature: taxSignature,
+        isCartCheckout: true
       }
 
-      // Process checkout with backend
       // Pull access token from stored session
       const storedSession = typeof window !== 'undefined' ? localStorage.getItem('auth_session') : null
       const accessToken = storedSession ? (JSON.parse(storedSession)?.access_token as string | undefined) : undefined
 
+      // Process checkout with backend
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/checkout/process`, {
         method: 'POST',
         headers: {
@@ -262,38 +279,59 @@ export default function CheckoutForm({ ticketData, eventData, onSuccess, onError
     }
   }
 
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Order Summary */}
       <div className="bg-gray-800/30 rounded-lg p-4 border border-gray-600">
         <h3 className="text-lg font-semibold text-white mb-3">Order Summary</h3>
         
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-300">
-              {ticketData.quantity}x {eventData.title} - Section {ticketData.section}, Row {ticketData.row}
-            </span>
-            <span className="text-white">${subtotal.toFixed(2)}</span>
-          </div>
-          
-          {selectedDelivery && deliveryCost > 0 && (
-            <div className="flex justify-between">
-              <span className="text-gray-300">{selectedDelivery.description}</span>
-              <span className="text-white">${deliveryCost.toFixed(2)}</span>
+        <div className="space-y-3 text-sm">
+          {/* Items */}
+          {cartData.items.map((item, index) => (
+            <div key={index} className="flex justify-between">
+              <span className="text-gray-300">
+                {item.quantity}x {item.eventTitle} - Section {item.section}, Row {item.row}
+              </span>
+              <span className="text-white">${item.totalPrice.toFixed(2)}</span>
             </div>
-          )}
+          ))}
           
-          {taxAmount > 0 && (
+          <div className="border-t border-gray-600 pt-2 space-y-1">
             <div className="flex justify-between">
-              <span className="text-gray-300">Tax</span>
-              <span className="text-white">${taxAmount.toFixed(2)}</span>
+              <span className="text-gray-300">Subtotal</span>
+              <span className="text-white">${subtotal.toFixed(2)}</span>
             </div>
-          )}
-          
-          <div className="border-t border-gray-600 pt-2 flex justify-between font-semibold">
-            <span className="text-white">Total</span>
-            <span className="text-green-400">${totalAmount.toFixed(2)}</span>
+            
+            <div className="flex justify-between">
+              <span className="text-gray-300">Service Fee</span>
+              <span className="text-white">${cartData.summary.serviceFee.toFixed(2)}</span>
+            </div>
+            
+            {selectedDelivery && deliveryCost > 0 && (
+              <div className="flex justify-between">
+                <span className="text-gray-300">{selectedDelivery.description}</span>
+                <span className="text-white">${deliveryCost.toFixed(2)}</span>
+              </div>
+            )}
+            
+            {taxAmount > 0 && (
+              <div className="flex justify-between">
+                <span className="text-gray-300">Tax</span>
+                <span className="text-white">${taxAmount.toFixed(2)}</span>
+              </div>
+            )}
+            
+            {cartData.summary.discount > 0 && (
+              <div className="flex justify-between">
+                <span className="text-gray-300">Discount</span>
+                <span className="text-green-400">-${cartData.summary.discount.toFixed(2)}</span>
+              </div>
+            )}
+            
+            <div className="border-t border-gray-600 pt-2 flex justify-between font-semibold">
+              <span className="text-white">Total</span>
+              <span className="text-green-400">${totalAmount.toFixed(2)}</span>
+            </div>
           </div>
         </div>
       </div>

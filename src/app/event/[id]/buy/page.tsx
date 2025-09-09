@@ -3,6 +3,7 @@
 import { useParams, useRouter } from 'next/navigation'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useCart } from '@/contexts/CartContext'
 import { LoadingSkeleton } from '@/components/ui/Loading'
 import { TicketMap } from '@ticketevolution/seatmaps-client'
 import { 
@@ -87,6 +88,7 @@ export default function EventBuyPage() {
   const router = useRouter()
   const eventId = params.id as string
   const { } = useAuth()
+  const { addItem, isItemInCart } = useCart()
   const [event, setEvent] = useState<Event | null>(null)
   const [seatmapData, setSeatmapData] = useState<SeatmapData | null>(null)
   const [ticketGroups, setTicketGroups] = useState<TicketGroup[]>([])
@@ -101,6 +103,7 @@ export default function EventBuyPage() {
   const [orderData, setOrderData] = useState<Record<string, unknown> | null>(null)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [dataFetched, setDataFetched] = useState(false)
+  const [addedToCartMessage, setAddedToCartMessage] = useState<string | null>(null)
   const fetchedRef = useRef<string | null>(null)
   const lastChosenSectionRef = useRef<string | null>(null)
   const lastMapSelectionRef = useRef<string[]>([])
@@ -374,6 +377,53 @@ export default function EventBuyPage() {
     return groups
   }, [ticketGroups, event?.requirements?.inclusive_pricing])
 
+  // Handle add to cart
+  const handleAddToCart = () => {
+    if (selectedTickets.length === 0 || !event) return
+    
+    const selectedTicket = selectedTickets[0] // Using first selected ticket
+    
+    // Check if this ticket group is already in cart
+    const isAlreadyInCart = isItemInCart(selectedTicket.ticketGroupId)
+    
+    addItem({
+      ticketGroupId: selectedTicket.ticketGroupId,
+      eventId: eventId,
+      eventTitle: event.title,
+      eventDate: event.date,
+      venue: typeof event.venue === 'object' && event.venue.name 
+        ? event.venue.name 
+        : typeof event.venue === 'string' 
+          ? event.venue 
+          : 'Unknown Venue',
+      city: event.city,
+      state: event.state,
+      section: selectedTicket.section,
+      row: selectedTicket.row,
+      quantity: selectedTicket.quantity,
+      pricePerTicket: selectedTicket.pricePerTicket,
+      totalPrice: selectedTicket.totalPrice,
+      format: selectedTicket.format,
+      image: event.image || undefined,
+      eventType: 'Event' // Could be enhanced to get actual event type
+    })
+    
+    // Show appropriate success message
+    if (isAlreadyInCart) {
+      setAddedToCartMessage(`Updated cart with ${selectedTicket.quantity} more ticket(s)!`)
+    } else {
+      setAddedToCartMessage(`Added ${selectedTicket.quantity} ticket(s) to cart!`)
+    }
+    
+    // Keep the selection visible so users can see what they added
+    // and potentially add more of the same tickets or see their selection
+    
+    // Clear success message after 3 seconds
+    setTimeout(() => {
+      setAddedToCartMessage(null)
+    }, 3000)
+  }
+
   // Handle checkout
   const handleCheckout = () => {
     if (selectedTickets.length === 0) return
@@ -613,6 +663,14 @@ export default function EventBuyPage() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Added to Cart Success Message */}
+        {addedToCartMessage && (
+          <div className="fixed top-20 right-4 z-50 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 animate-fade-in-up">
+            <CheckCircleIcon className="h-5 w-5" />
+            <span>{addedToCartMessage}</span>
           </div>
         )}
 
@@ -871,14 +929,25 @@ export default function EventBuyPage() {
                         </span>
                       </div>
                       
-                      <button
-                        onClick={handleCheckout}
-                        disabled={selectedTickets.length === 0 || totalOrderAmount === 0}
-                        className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2"
-                      >
-                        <ShoppingCartIcon className="h-5 w-5" />
-                        <span>Proceed to Checkout</span>
-                      </button>
+                      <div className="space-y-3">
+                        <button
+                          onClick={handleAddToCart}
+                          disabled={selectedTickets.length === 0 || totalOrderAmount === 0}
+                          className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2"
+                        >
+                          <ShoppingCartIcon className="h-5 w-5" />
+                          <span>Add to Cart</span>
+                        </button>
+                        
+                        <button
+                          onClick={handleCheckout}
+                          disabled={selectedTickets.length === 0 || totalOrderAmount === 0}
+                          className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2"
+                        >
+                          <CheckCircleIcon className="h-5 w-5" />
+                          <span>Buy Now</span>
+                        </button>
+                      </div>
                     </div>
 
                     {/* Guarantee Info */}

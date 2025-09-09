@@ -21,6 +21,7 @@ import {
 import { useLocation } from '@/contexts/LocationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCategories } from '@/contexts/CategoryContext';
+import { useCart } from '@/contexts/CartContext';
 import { configService } from '@/lib/configService';
 
 interface Category {
@@ -41,6 +42,7 @@ export default function Header() {
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
   const { location, loading, error, formatLocation } = useLocation();
   const { user, profile, signOut } = useAuth();
+  const { getItemCount } = useCart();
   const [siteName, setSiteName] = useState<string>('');
   const [contactEmail, setContactEmail] = useState<string>('');
   const [contactPhone, setContactPhone] = useState<string>('');
@@ -248,9 +250,11 @@ export default function Header() {
                   </button>
                   <Link href="/cart" className="text-gray-300 hover:text-white p-2 relative transform transition-all duration-300 hover:scale-110">
                     <ShoppingCartIcon className="h-5 w-5" />
-                    <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center animate-pulse">
-                      0
-                    </span>
+                    {getItemCount() > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center animate-pulse">
+                        {getItemCount() > 99 ? '99+' : getItemCount()}
+                      </span>
+                    )}
                   </Link>
                 </>
               ) : (
@@ -281,9 +285,11 @@ export default function Header() {
                   </button>
                   <Link href="/cart" className="text-gray-300 hover:text-white text-sm font-medium relative transform transition-all duration-300 hover:scale-105">
                     <ShoppingCartIcon className="h-5 w-5" />
-                    <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-bounce">
-                      0
-                    </span>
+                    {getItemCount() > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-bounce">
+                        {getItemCount() > 99 ? '99+' : getItemCount()}
+                      </span>
+                    )}
                   </Link>
                 </>
               ) : (

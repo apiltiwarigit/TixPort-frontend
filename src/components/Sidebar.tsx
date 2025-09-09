@@ -321,10 +321,6 @@ export default function Sidebar() {
           <Link href="/register" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors">
             Register
           </Link>
-          <Link href="/cart" className="block text-gray-300 hover:text-white py-2 text-sm font-medium transition-colors flex items-center">
-            <ShoppingCartIcon className="h-4 w-4 mr-2" />
-            Cart
-          </Link>
         </nav>
       </div>
 

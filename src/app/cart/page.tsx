@@ -1,12 +1,16 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { PageContainer } from '@/components/layout';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
+import { Card, CardContent } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { Input } from '@/components/ui';
 import { EmptyCart } from '@/components/ui';
+import { useCart } from '@/contexts/CartContext';
+import StripeProvider from '@/components/StripeProvider';
+import CartCheckoutForm from '@/components/CartCheckoutForm';
 import {
   ShoppingCartIcon,
   TrashIcon,
@@ -15,78 +19,177 @@ import {
   CreditCardIcon,
   ShieldCheckIcon,
   TruckIcon,
-  ArrowLeftIcon
+  ArrowLeftIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 
-// Mock cart data - will be replaced with real cart state management later
-const mockCartItems = [
-  {
-    id: 1,
-    eventTitle: 'Taylor Swift - The Eras Tour',
-    venue: 'MetLife Stadium',
-    date: '2024-08-15',
-    time: '8:00 PM',
-    section: 'Floor',
-    row: 'A',
-    seat: '12',
-    price: 299.00,
-    quantity: 2,
-    image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop',
-    eventType: 'Concert'
-  },
-  {
-    id: 2,
-    eventTitle: 'New York Yankees vs Boston Red Sox',
-    venue: 'Yankee Stadium',
-    date: '2024-08-25',
-    time: '7:05 PM',
-    section: 'Field Level',
-    row: '15',
-    seat: '8',
-    price: 125.00,
-    quantity: 1,
-    image: 'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?w=400&h=300&fit=crop',
-    eventType: 'MLB Baseball'
-  }
-];
-
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState(mockCartItems);
+  const router = useRouter();
+  const { items, summary, updateQuantity, removeItem, clearCart } = useCart();
   const [promoCode, setPromoCode] = useState('');
+  const [discount, setDiscount] = useState(0);
+  const [currentStep, setCurrentStep] = useState<'cart' | 'checkout' | 'success'>('cart');
+  const [orderData, setOrderData] = useState<Record<string, unknown> | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
-  const updateQuantity = (id: number, newQuantity: number) => {
-    if (newQuantity < 1) return;
-
-    setCartItems(items =>
-      items.map(item =>
-        item.id === id ? { ...item, quantity: newQuantity } : item
-      )
-    );
-  };
-
-  const removeItem = (id: number) => {
-    setCartItems(items => items.filter(item => item.id !== id));
-  };
-
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const serviceFee = subtotal * 0.1; // 10% service fee
-  const deliveryFee = cartItems.length > 0 ? 4.99 : 0;
-  const discount = promoCode === 'TIXPORT10' ? subtotal * 0.1 : 0; // 10% discount
-  const total = subtotal + serviceFee + deliveryFee - discount;
+  // Calculate totals with promo code
+  const finalDiscount = promoCode === 'TIXPORT10' ? summary.subtotal * 0.1 : discount;
+  const finalTotal = summary.subtotal + summary.serviceFee + summary.deliveryFee - finalDiscount;
 
   const handlePromoCode = () => {
-    // Handle promo code validation here
-    console.log('Applying promo code:', promoCode);
+    if (promoCode === 'TIXPORT10') {
+      setDiscount(summary.subtotal * 0.1);
+    } else {
+      setDiscount(0);
+    }
   };
 
   const handleCheckout = () => {
-    // Handle checkout logic here
-    console.log('Processing checkout...');
-    alert('Checkout functionality would be implemented here!');
+    if (items.length === 0) return;
+    setCurrentStep('checkout');
   };
 
+  const handleCheckoutSuccess = (orderResult: unknown) => {
+    setOrderData(orderResult as Record<string, unknown>);
+    clearCart(); // Clear cart after successful checkout
+    setCurrentStep('success');
+  };
+
+  const handleCheckoutError = (error: string) => {
+    setCheckoutError(error);
+  };
+
+  const handleBackToCart = () => {
+    setCurrentStep('cart');
+    setCheckoutError(null);
+  };
+
+  // Convert cart items to checkout data format
+  const getCheckoutData = () => {
+    if (items.length === 0) return null;
+    
+    return {
+      items: items.map(item => ({
+        ticketGroupId: item.ticketGroupId,
+        eventId: item.eventId,
+        eventTitle: item.eventTitle,
+        eventDate: item.eventDate,
+        venue: item.venue,
+        section: item.section,
+        row: item.row,
+        quantity: item.quantity,
+        pricePerTicket: item.pricePerTicket,
+        totalPrice: item.totalPrice,
+        format: item.format
+      })),
+      summary: {
+        subtotal: summary.subtotal,
+        serviceFee: summary.serviceFee,
+        deliveryFee: summary.deliveryFee,
+        discount: finalDiscount,
+        total: finalTotal
+      }
+    };
+  };
+
+  // Success Step
+  if (currentStep === 'success' && orderData) {
     return (
+      <PageContainer showSidebar={true}>
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700 p-8">
+            <CheckCircleIcon className="h-16 w-16 text-green-400 mx-auto mb-4" />
+            <h1 className="text-3xl font-bold text-white mb-4">Order Confirmed!</h1>
+            <p className="text-gray-300 mb-6">
+              Your tickets have been successfully purchased.
+            </p>
+            
+            <div className="bg-gray-700/30 rounded-lg p-4 mb-6">
+              <div className="text-left space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Order ID:</span>
+                  <span className="text-white font-mono">{orderData.orderId as string}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Total:</span>
+                  <span className="text-green-400 font-semibold">${(orderData.total as number)?.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Status:</span>
+                  <span className="text-blue-400 capitalize">{orderData.status as string}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <p className="text-sm text-gray-400">
+                You will receive a confirmation email with your ticket details shortly.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link href="/" className="btn-primary">
+                  <Button variant="primary">Return Home</Button>
+                </Link>
+                <Link href="/profile/orders" className="btn-secondary">
+                  <Button variant="secondary">View My Orders</Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  // Checkout Step
+  if (currentStep === 'checkout') {
+    const checkoutData = getCheckoutData();
+    if (!checkoutData) {
+      setCurrentStep('cart');
+      return null;
+    }
+
+    return (
+      <PageContainer showSidebar={true}>
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-6">
+            <button
+              onClick={handleBackToCart}
+              className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
+            >
+              <ArrowLeftIcon className="h-5 w-5" />
+              <span>Back to Cart</span>
+            </button>
+          </div>
+          
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700 p-6">
+            <h1 className="text-2xl font-bold text-white mb-6">Complete Your Purchase</h1>
+            
+            {checkoutError && (
+              <div className="mb-6 bg-red-900/20 border border-red-800 rounded-lg p-4">
+                <div className="flex items-center space-x-3">
+                  <ExclamationTriangleIcon className="h-5 w-5 text-red-400" />
+                  <div className="text-red-300">{checkoutError}</div>
+                </div>
+              </div>
+            )}
+            
+            <StripeProvider>
+              <CartCheckoutForm
+                cartData={checkoutData}
+                onSuccess={handleCheckoutSuccess}
+                onError={handleCheckoutError}
+              />
+            </StripeProvider>
+          </div>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  // Main Cart View
+  return (
     <PageContainer showSidebar={true}>
       <div>
         {/* Header */}
@@ -108,30 +211,36 @@ export default function CartPage() {
           </div>
         </div>
 
-        {cartItems.length === 0 ? (
+        {items.length === 0 ? (
           <EmptyCart
             title="Your cart is empty"
             description="Add some tickets to get started!"
-            onBrowse={() => window.location.href = '/'}
+            onBrowse={() => router.push('/')}
           />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
             {/* Cart Items */}
             <div className="lg:col-span-2">
               <div className="space-y-4">
-                {cartItems.map((item) => (
+                {items.map((item) => (
                   <Card key={item.id} className="animate-fade-in-up">
                     <CardContent className="p-4 sm:p-6">
                       <div className="flex flex-col sm:flex-row gap-4">
                         {/* Event Image */}
                         <div className="w-full sm:w-32 h-32 sm:h-24 flex-shrink-0">
-                          <Image
-                            src={item.image}
-                            alt={item.eventTitle}
-                            width={128}
-                            height={96}
-                            className="w-full h-full object-cover rounded-lg"
-                          />
+                          {item.image ? (
+                            <Image
+                              src={item.image}
+                              alt={item.eventTitle}
+                              width={128}
+                              height={96}
+                              className="w-full h-full object-cover rounded-lg"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gray-700 rounded-lg flex items-center justify-center">
+                              <ShoppingCartIcon className="h-8 w-8 text-gray-500" />
+                            </div>
+                          )}
                         </div>
 
                         {/* Event Details */}
@@ -143,8 +252,10 @@ export default function CartPage() {
                               </h3>
                               <div className="text-sm text-gray-400 space-y-1">
                                 <p>{item.venue}</p>
-                                <p>{new Date(item.date).toLocaleDateString()} at {item.time}</p>
-                                <p className="text-purple-400 font-medium">{item.eventType}</p>
+                                <p>{new Date(item.eventDate).toLocaleDateString()} at {new Date(item.eventDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                {item.eventType && (
+                                  <p className="text-purple-400 font-medium">{item.eventType}</p>
+                                )}
                               </div>
                             </div>
 
@@ -174,7 +285,7 @@ export default function CartPage() {
 
                               <div className="text-right">
                                 <p className="text-green-400 font-bold text-lg">
-                                  ${(item.price * item.quantity).toFixed(2)}
+                                  ${item.totalPrice.toFixed(2)}
                                 </p>
                                 <Button
                                   onClick={() => removeItem(item.id)}
@@ -192,7 +303,8 @@ export default function CartPage() {
                           {/* Seat Information */}
                           <div className="mt-3 pt-3 border-t border-gray-700">
                             <p className="text-sm text-gray-300">
-                              <span className="font-medium">Seat:</span> Section {item.section}, Row {item.row}, Seat {item.seat}
+                              <span className="font-medium">Seat:</span> Section {item.section}, Row {item.row}
+                              {item.seat && `, Seat ${item.seat}`}
                             </p>
                           </div>
                         </div>
@@ -206,11 +318,9 @@ export default function CartPage() {
             {/* Order Summary */}
             <div className="lg:col-span-1">
               <Card className="sticky top-4">
-                <CardHeader>
-                  <CardTitle>Order Summary</CardTitle>
-                </CardHeader>
+                <CardContent className="p-6">
+                  <h2 className="text-xl font-bold text-white mb-4">Order Summary</h2>
 
-                <CardContent>
                   {/* Promo Code */}
                   <div className="mb-4">
                     <label htmlFor="promo" className="block text-sm font-medium text-gray-300 mb-2">
@@ -238,27 +348,27 @@ export default function CartPage() {
                   {/* Price Breakdown */}
                   <div className="space-y-2 mb-6">
                     <div className="flex justify-between text-gray-300">
-                      <span>Subtotal ({cartItems.length} items)</span>
-                      <span>${subtotal.toFixed(2)}</span>
+                      <span>Subtotal ({summary.itemCount} items)</span>
+                      <span>${summary.subtotal.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-gray-300">
                       <span>Service Fee</span>
-                      <span>${serviceFee.toFixed(2)}</span>
+                      <span>${summary.serviceFee.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-gray-300">
                       <span>Delivery</span>
-                      <span>${deliveryFee.toFixed(2)}</span>
+                      <span>${summary.deliveryFee.toFixed(2)}</span>
                     </div>
-                    {discount > 0 && (
+                    {finalDiscount > 0 && (
                       <div className="flex justify-between text-green-400">
                         <span>Discount</span>
-                        <span>-${discount.toFixed(2)}</span>
+                        <span>-${finalDiscount.toFixed(2)}</span>
                       </div>
                     )}
                     <div className="border-t border-gray-600 pt-2">
                       <div className="flex justify-between text-white font-bold text-lg">
                         <span>Total</span>
-                        <span>${total.toFixed(2)}</span>
+                        <span>${finalTotal.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
@@ -270,7 +380,7 @@ export default function CartPage() {
                     leftIcon={<CreditCardIcon className="h-5 w-5" />}
                     className="mb-4"
                     onClick={handleCheckout}
-                    disabled={cartItems.length === 0}
+                    disabled={items.length === 0}
                   >
                     Checkout
                   </Button>

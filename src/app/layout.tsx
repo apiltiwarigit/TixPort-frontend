@@ -4,6 +4,7 @@ import './globals.css'
 import { LocationProvider } from '@/contexts/LocationContext'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { CategoryProvider } from '@/contexts/CategoryContext'
+import { CartProvider } from '@/contexts/CartContext'
 import AuthGuard from '@/components/AuthGuard'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -51,9 +52,11 @@ export default function RootLayout({
         <AuthProvider>
           <LocationProvider>
             <CategoryProvider>
-              <AuthGuard>
-                {children}
-              </AuthGuard>
+              <CartProvider>
+                <AuthGuard>
+                  {children}
+                </AuthGuard>
+              </CartProvider>
             </CategoryProvider>
           </LocationProvider>
         </AuthProvider>
