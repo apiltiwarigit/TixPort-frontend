@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 import {
   GlobeAltIcon,
   UserIcon,
-  ShoppingCartIcon,
   PhoneIcon,
   InformationCircleIcon,
   MapPinIcon,
@@ -135,7 +134,7 @@ export default function Sidebar() {
   const isInActivePath = (categoryId: number): boolean => {
     const currentCategoryId = getCurrentCategoryId();
     if (!currentCategoryId) return false;
-    
+
     const activePath = findCategoryPath(currentCategoryId, categories);
     return activePath.includes(categoryId);
   };
@@ -153,7 +152,7 @@ export default function Sidebar() {
     const isActive = currentCategoryId === category.id;
     const isInPath = isInActivePath(category.id);
     // Use static Tailwind classes to avoid dynamic class issues
-    const indentClasses = ['','ml-4','ml-8','ml-12','ml-16','ml-20','ml-24'];
+    const indentClasses = ['', 'ml-4', 'ml-8', 'ml-12', 'ml-16', 'ml-20', 'ml-24'];
     const indentClass = indentClasses[Math.min(level, indentClasses.length - 1)];
 
     return (
@@ -175,16 +174,15 @@ export default function Sidebar() {
           ) : (
             <div className="w-5" /> // Spacer for alignment
           )}
-          
+
           <Link
             href={generateCategoryLink(category)}
-            className={`flex-1 px-2 py-1 rounded transition-all duration-200 truncate font-medium ${
-              isActive
+            className={`flex-1 px-2 py-1 rounded transition-all duration-200 truncate font-medium ${isActive
                 ? 'text-white bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg shadow-blue-500/25'
                 : isInPath
-                ? 'text-white bg-blue-500/20 border border-blue-400/50'
-                : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-            }`}
+                  ? 'text-white bg-blue-500/20 border border-blue-400/50'
+                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+              }`}
           >
             {category.name}
           </Link>
@@ -286,11 +284,10 @@ export default function Sidebar() {
                 <div className="w-5" /> {/* Spacer for alignment */}
                 <Link
                   href="/category/all"
-                  className={`flex-1 px-2 py-1 rounded transition-all duration-200 truncate font-medium ${
-                    pathname === '/category/all'
+                  className={`flex-1 px-2 py-1 rounded transition-all duration-200 truncate font-medium ${pathname === '/category/all'
                       ? 'text-white bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg shadow-blue-500/25'
                       : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-                  }`}
+                    }`}
                 >
                   All Events
                 </Link>
