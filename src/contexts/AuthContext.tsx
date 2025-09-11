@@ -52,11 +52,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Routes that require authentication
 const PROTECTED_ROUTES = [
-  '/cart',
-  '/event/*/buy',
   '/profile',
   '/orders',
-  '/settings'
+  '/settings',
+  '/admin'
 ];
 
 // Routes that are only for unauthenticated users
@@ -87,8 +86,8 @@ function getRouteType(pathname: string): 'protected' | 'auth-only' | 'public' {
     return 'protected';
   }
   
-  // Convert route pattern to regex (e.g., '/event/*/buy' -> '/event/.+/buy')
-  const protectedPatterns = ['/event/.+/buy'];
+  // Convert route pattern to regex (e.g., '/admin/.*' -> '/admin/.+')
+  const protectedPatterns = ['/admin/.+'];
   for (const pattern of protectedPatterns) {
     const regex = new RegExp(`^${pattern}$`);
     if (regex.test(pathname)) {

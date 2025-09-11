@@ -251,6 +251,11 @@ export default function CartCheckoutForm({ cartData, onSuccess, onError }: CartC
       const result = await response.json()
 
       if (result.success) {
+        // Redirect to success page with order ID
+        const orderId = result.data.id || result.data.oid
+        if (typeof window !== 'undefined') {
+          window.location.href = `/checkout/success?orderId=${orderId}`
+        }
         onSuccess(result.data)
       } else {
         throw new Error(result.message || 'Checkout failed')

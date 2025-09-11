@@ -31,8 +31,8 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
   // Define route types
   const authOnlyRoutes = ['/login', '/register', '/forgot-password'];
-  const protectedRoutes = ['/cart', '/profile', '/orders', '/settings'];
-  const protectedPatterns = ['/event/.+/buy'];
+  const protectedRoutes = ['/profile', '/orders', '/settings', '/admin'];
+  const protectedPatterns = ['/admin/.+'];
   
   const isAuthOnlyRoute = authOnlyRoutes.includes(pathname);
   const isProtectedRoute = protectedRoutes.includes(pathname) || 
