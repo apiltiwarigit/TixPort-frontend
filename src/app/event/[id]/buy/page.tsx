@@ -739,7 +739,7 @@ export default function EventBuyPage() {
                       mouseControlEnabled={true}
                       sectionPercentiles={{
                         "0.2": "#10B981",
-                        "0.4": "#F59E0B", 
+                        "0.4": "#F59E0B",
                         "0.6": "#EF4444",
                         "0.8": "#8B5CF6",
                         "1": "#3B82F6"
@@ -750,43 +750,55 @@ export default function EventBuyPage() {
                   <div className="h-96 flex flex-col items-center justify-center text-center p-8">
                     <MapIcon className="h-16 w-16 text-gray-500 mb-4" />
                     <h3 className="text-lg font-medium text-gray-300 mb-2">
-                      Interactive Seating Chart Coming Soon
+                      Interactive Seating Chart Unavailable
                     </h3>
                     <p className="text-gray-400 mb-6">
-                      Use the ticket selection panel to choose your seats
+                      Manual ticket selection is available below
                     </p>
-                    
-                                         {/* Fallback ticket listing */}
-                     <div className="w-full max-w-md">
-                       {ticketGroups.length === 0 ? (
-                         <div className="text-center">
-                           <TicketIcon className="h-12 w-12 text-gray-500 mx-auto mb-3" />
-                           <h4 className="text-sm font-medium text-gray-300 mb-2">No Tickets Available</h4>
-                           <p className="text-xs text-gray-400">
-                             This event currently has no tickets for sale.
-                           </p>
-                         </div>
-                       ) : (
-                         <>
-                           <h4 className="text-sm font-medium text-gray-300 mb-3">Available Sections:</h4>
-                           <div className="space-y-2 max-h-32 overflow-y-auto">
-                             {Array.from(new Set(ticketGroups.map(g => typeof g.section === 'string' ? g.section : String(g.section)))).slice(0, 6).map(section => (
-                               <button
-                                 key={section}
-                                 onClick={() => handleSectionSelection([section])}
-                                 className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${
-                                   selectedSections.length > 0 && selectedSections[0] === section
-                                     ? 'bg-purple-600 text-white'
-                                     : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                                 }`}
-                               >
-                                 Section {section}
-                               </button>
-                             ))}
-                           </div>
-                         </>
-                       )}
-                     </div>
+                  </div>
+                )}
+
+                {/* Manual Ticket Selection - Always show as fallback */}
+                {ticketGroups.length > 0 && (
+                  <div className="p-6 border-t border-gray-700">
+                    <h4 className="text-lg font-medium text-gray-300 mb-4">Manual Ticket Selection</h4>
+                    <div className="space-y-3 max-h-60 overflow-y-auto">
+                      {Array.from(new Set(
+                        ticketGroups
+                          .filter(g => g.available_quantity && g.available_quantity > 0)
+                          .map(g => typeof g.section === 'string' ? g.section : String(g.section))
+                      )).map(section => {
+                        const sectionTickets = ticketGroups.filter(g =>
+                          (typeof g.section === 'string' ? g.section : String(g.section)) === section &&
+                          g.available_quantity && g.available_quantity > 0
+                        );
+                        const totalAvailable = sectionTickets.reduce((sum, g) => sum + (g.available_quantity || 0), 0);
+
+                        return (
+                          <button
+                            key={section}
+                            onClick={() => handleSectionSelection([section])}
+                            className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-colors ${
+                              selectedSections.length > 0 && selectedSections[0] === section
+                                ? 'bg-purple-600 text-white border border-purple-500'
+                                : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'
+                            }`}
+                          >
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <span>Section {section}</span>
+                                <div className="text-xs text-gray-400 mt-1">
+                                  {totalAvailable} ticket{totalAvailable !== 1 ? 's' : ''} available
+                                </div>
+                              </div>
+                              {selectedSections.length > 0 && selectedSections[0] === section && (
+                                <CheckCircleIcon className="h-5 w-5" />
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
                 </div>
@@ -829,7 +841,7 @@ export default function EventBuyPage() {
                     {availableTicketsForSection.length > 0 && (
                       <div className="space-y-4">
                         <h4 className="font-medium text-gray-300">Available Tickets</h4>
-                        <div className="space-y-3">
+                        <div className="max-h-64 overflow-y-auto space-y-3">
                           {availableTicketsForSection.map((ticketGroup) => (
                             <div key={ticketGroup.id} className="bg-gray-700/30 rounded-lg p-4 border border-gray-600">
                               <div className="flex justify-between items-start mb-3">
@@ -866,57 +878,59 @@ export default function EventBuyPage() {
                     {selectedTickets.length > 0 && (
                       <div className="space-y-4">
                         <h4 className="font-medium text-gray-300">Selected Ticket</h4>
-                      {selectedTickets.map((ticket) => (
-                        <div key={ticket.ticketGroupId} className="bg-gray-700/50 rounded-lg p-4">
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <p className="font-medium text-white">
-                                Section {typeof ticket.section === 'string' ? ticket.section : String(ticket.section)}, Row {typeof ticket.row === 'string' ? ticket.row : String(ticket.row)}
-                              </p>
-                              <p className="text-sm text-gray-400">{typeof ticket.format === 'string' ? ticket.format : String(ticket.format)}</p>
+                        <div className="max-h-48 overflow-y-auto space-y-4">
+                        {selectedTickets.map((ticket) => (
+                          <div key={ticket.ticketGroupId} className="bg-gray-700/50 rounded-lg p-4">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <p className="font-medium text-white">
+                                  Section {typeof ticket.section === 'string' ? ticket.section : String(ticket.section)}, Row {typeof ticket.row === 'string' ? ticket.row : String(ticket.row)}
+                                </p>
+                                <p className="text-sm text-gray-400">{typeof ticket.format === 'string' ? ticket.format : String(ticket.format)}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-bold text-green-400">
+                                  ${ticket.pricePerTicket.toFixed(2)}
+                                </p>
+                                <p className="text-xs text-gray-400">per ticket</p>
+                              </div>
                             </div>
-                            <div className="text-right">
-                              <p className="font-bold text-green-400">
-                                ${ticket.pricePerTicket.toFixed(2)}
-                              </p>
-                              <p className="text-xs text-gray-400">per ticket</p>
+
+                            {/* Quantity Selector */}
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-gray-300">Quantity:</span>
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={() => updateTicketQuantity(ticket.ticketGroupId, ticket.quantity - 1)}
+                                  disabled={ticket.quantity <= 1}
+                                  className="w-8 h-8 rounded-full bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-white"
+                                >
+                                  -
+                                </button>
+                                <span className="w-8 text-center text-white font-medium">
+                                  {ticket.quantity}
+                                </span>
+                                <button
+                                  onClick={() => updateTicketQuantity(ticket.ticketGroupId, ticket.quantity + 1)}
+                                  disabled={ticket.quantity >= 8}
+                                  className="w-8 h-8 rounded-full bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-white"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="mt-2 pt-2 border-t border-gray-600">
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-gray-300">Subtotal:</span>
+                                <span className="font-bold text-white">
+                                  ${ticket.totalPrice.toFixed(2)}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                          
-                          {/* Quantity Selector */}
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-300">Quantity:</span>
-                            <div className="flex items-center space-x-2">
-                              <button
-                                onClick={() => updateTicketQuantity(ticket.ticketGroupId, ticket.quantity - 1)}
-                                disabled={ticket.quantity <= 1}
-                                className="w-8 h-8 rounded-full bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-white"
-                              >
-                                -
-                              </button>
-                              <span className="w-8 text-center text-white font-medium">
-                                {ticket.quantity}
-                              </span>
-                              <button
-                                onClick={() => updateTicketQuantity(ticket.ticketGroupId, ticket.quantity + 1)}
-                                disabled={ticket.quantity >= 8}
-                                className="w-8 h-8 rounded-full bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-white"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-                          
-                          <div className="mt-2 pt-2 border-t border-gray-600">
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm text-gray-300">Subtotal:</span>
-                              <span className="font-bold text-white">
-                                ${ticket.totalPrice.toFixed(2)}
-                              </span>
-                            </div>
-                          </div>
+                        ))}
                         </div>
-                      ))}
                       </div>
                     )}
 
