@@ -12,6 +12,12 @@ interface CounterItem {
   icon: JSX.Element;
 }
 
+interface PublicStats {
+  totalLikes: number;
+  totalMoneySaved: number;
+  totalTicketsSold: number;
+}
+
 function useCountUp(target: number, durationMs = 1200) {
   const [value, setValue] = useState(0);
   const startRef = useRef<number | null>(null);
@@ -58,24 +64,57 @@ function Counter({ item, delayMs = 0 }: { item: CounterItem; delayMs?: number })
 }
 
 export default function TopCounters() {
+  const [stats, setStats] = useState<PublicStats | null>(null);
+
+  useEffect(() => {
+    fetchPublicStats();
+  }, []);
+
+  const fetchPublicStats = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001'}/api/public/config`);
+
+      if (response.ok) {
+        const data = await response.json();
+        const config = data.data || {};
+
+        setStats({
+          totalLikes: parseInt(config.stats_manual_likes) || 12847,
+          totalMoneySaved: parseInt(config.stats_manual_money_saved) || 12847,
+          totalTicketsSold: parseInt(config.stats_manual_tickets_sold) || 12847
+        });
+      } else {
+        throw new Error('Failed to fetch config');
+      }
+    } catch (error) {
+      console.error('Error fetching public stats:', error);
+      // Use fallback values
+      setStats({
+        totalLikes: 12847,
+        totalMoneySaved: 12847,
+        totalTicketsSold: 12847
+      });
+    }
+  };
+
   const items: CounterItem[] = [
     {
       id: "likes",
       label: "Total Likes",
-      value: 12847,
+      value: stats?.totalLikes || 12847,
       icon: <HeartIcon className="h-5 w-5 sm:h-6 sm:w-6" />,
     },
     {
       id: "saved",
       label: "Money Saved",
-      value: 342190,
+      value: stats?.totalMoneySaved || 12847,
       prefix: "$",
       icon: <BanknotesIcon className="h-5 w-5 sm:h-6 sm:w-6" />,
     },
     {
       id: "tickets",
       label: "Tickets Sold",
-      value: 58723,
+      value: stats?.totalTicketsSold || 12847,
       icon: <TicketIcon className="h-5 w-5 sm:h-6 sm:w-6" />,
     },
   ];

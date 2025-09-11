@@ -21,6 +21,7 @@ interface Category {
   children?: Category[];
   created_at?: string;
   updated_at?: string;
+  isTogglingVisibility?: boolean;
 }
 
 export default function AdminCategoriesPage() {
@@ -69,6 +70,11 @@ export default function AdminCategoriesPage() {
     fetchCategories();
   }, [fetchCategories]);
 
+  // Rebuild tree when categories change
+  useEffect(() => {
+    setCategoryTree(buildCategoryTree(categories));
+  }, [categories]);
+
   const syncCategories = async () => {
     try {
       setSyncing(true);
@@ -101,10 +107,15 @@ export default function AdminCategoriesPage() {
   };
 
   const toggleVisibility = async (categoryId: number, isVisible: boolean) => {
+    // Set loading state for this specific category
+    setCategories(prev => prev.map(cat =>
+      cat.id === categoryId ? { ...cat, isTogglingVisibility: true } : cat
+    ));
+
     try {
       const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
       const token = localStorage.getItem('auth_session');
-      
+
       if (!token) return;
 
       const session = JSON.parse(token);
@@ -118,10 +129,22 @@ export default function AdminCategoriesPage() {
       });
 
       if (response.ok) {
-        await fetchCategories();
+        // Update the local state instead of refetching to preserve loading state
+        setCategories(prev => prev.map(cat =>
+          cat.id === categoryId
+            ? { ...cat, is_visible: !isVisible, updated_at: new Date().toISOString() }
+            : cat
+        ));
+      } else {
+        console.error('Failed to update category visibility');
       }
     } catch (error) {
       console.error('Error updating category visibility:', error);
+    } finally {
+      // Clear loading state for this specific category
+      setCategories(prev => prev.map(cat =>
+        cat.id === categoryId ? { ...cat, isTogglingVisibility: false } : cat
+      ));
     }
   };
 
@@ -149,7 +172,7 @@ export default function AdminCategoriesPage() {
       const children = (node.children || []).map(filterNode).filter(Boolean) as Category[];
       const matches = node.name.toLowerCase().includes(q) || node.slug.toLowerCase().includes(q);
       if (matches || children.length > 0) {
-        return { ...node, children };
+        return { ...node, children, isTogglingVisibility: node.isTogglingVisibility };
       }
       return null;
     };
@@ -197,13 +220,19 @@ export default function AdminCategoriesPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => toggleVisibility(category.id, category.is_visible)}
-              className={`px-3 py-1 text-xs rounded flex items-center gap-1 ${
+              disabled={category.isTogglingVisibility}
+              className={`px-3 py-1 text-xs rounded flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed ${
                 category.is_visible
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-600 text-gray-300'
+                  ? 'bg-green-600 text-white hover:bg-green-700'
+                  : 'bg-gray-600 text-gray-300 hover:bg-gray-700'
               }`}
             >
-              {category.is_visible ? (
+              {category.isTogglingVisibility ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border border-current border-t-transparent"></div>
+                  Updating...
+                </>
+              ) : category.is_visible ? (
                 <>
                   <EyeIcon className="h-3 w-3" />
                   Visible

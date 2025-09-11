@@ -1,140 +1,132 @@
-import { ReactNode } from 'react';
+'use client';
 
-interface Stat {
-  number: string;
-  label: string;
-  icon?: ReactNode;
-  description?: string;
+import { useState, useEffect } from 'react';
+
+interface PublicStats {
+  totalLikes: number;
+  totalMoneySaved: number;
+  totalTicketsSold: number;
 }
 
-interface StatsSectionProps {
-  title?: string;
-  subtitle?: string;
-  stats: Stat[];
-  columns?: 2 | 3 | 4;
-  backgroundColor?: 'dark' | 'darker';
-  className?: string;
-}
+export default function StatsSection() {
+  const [stats, setStats] = useState<PublicStats | null>(null);
+  const [loading, setLoading] = useState(true);
 
-export function StatsSection({
-  title,
-  subtitle,
-  stats,
-  columns = 4,
-  backgroundColor = 'dark',
-  className = ''
-}: StatsSectionProps) {
-  const backgroundClasses = {
-    dark: 'bg-gray-800',
-    darker: 'bg-gray-900',
+  useEffect(() => {
+    fetchPublicStats();
+  }, []);
+
+  const fetchPublicStats = async () => {
+    try {
+      // Fetch from public config API
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001'}/api/public/config`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        const config = data.data || {};
+        
+        // Extract stats from config with fallbacks
+        setStats({
+          totalLikes: parseInt(config.stats_manual_likes) || 12847,
+          totalMoneySaved: parseInt(config.stats_manual_money_saved) || 12847,
+          totalTicketsSold: parseInt(config.stats_manual_tickets_sold) || 12847
+        });
+      } else {
+        throw new Error('Failed to fetch config');
+      }
+    } catch (error) {
+      console.error('Error fetching public stats:', error);
+      // Use fallback values
+      setStats({
+        totalLikes: 12847,
+        totalMoneySaved: 12847,
+        totalTicketsSold: 12847
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const gridColumns = {
-    2: 'grid-cols-1 md:grid-cols-2',
-    3: 'grid-cols-1 md:grid-cols-3',
-    4: 'grid-cols-2 md:grid-cols-4',
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
   };
+
+  const StatCard = ({ emoji, label, value, color }: { 
+    emoji: string; 
+    label: string; 
+    value: number; 
+    color: string;
+  }) => (
+    <div className={`relative overflow-hidden rounded-2xl ${color} p-8 text-center`}>
+      <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+      <div className="relative">
+        <div className="text-4xl mb-3">{emoji}</div>
+        <div className="text-3xl font-bold text-white mb-2">
+          {loading ? '...' : formatNumber(value)}
+        </div>
+        <div className="text-white/80 font-medium">{label}</div>
+      </div>
+    </div>
+  );
 
   return (
-    <section className={`${backgroundClasses[backgroundColor]} py-16 sm:py-20 ${className}`}>
+    <section className="py-16 bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        {(title || subtitle) && (
-          <div className="text-center mb-12">
-            {title && (
-              <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-                {title}
-              </h2>
-            )}
-            {subtitle && (
-              <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-                {subtitle}
-              </p>
-            )}
-          </div>
-        )}
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-white mb-4">
+            Join Thousands of Happy Customers
+          </h2>
+          <p className="text-gray-300 text-lg max-w-2xl mx-auto">
+            See why TixPort is the trusted choice for ticket buyers worldwide
+          </p>
+        </div>
 
         {/* Stats Grid */}
-        <div className={`grid ${gridColumns[columns]} gap-8`}>
-          {stats.map((stat, index) => (
-            <div
-              key={index}
-              className="text-center animate-fade-in-up"
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              {/* Icon */}
-              {stat.icon && (
-                <div className="mb-4 flex justify-center">
-                  <div className="p-3 bg-purple-600/20 rounded-full">
-                    {stat.icon}
-                  </div>
-                </div>
-              )}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+          <StatCard
+            emoji="❤️"
+            label="Happy Customers"
+            value={stats?.totalLikes || 12847}
+            color="bg-gradient-to-br from-pink-500 to-rose-600"
+          />
+          <StatCard
+            emoji="💰"
+            label="Money Saved"
+            value={stats?.totalMoneySaved || 12847}
+            color="bg-gradient-to-br from-green-500 to-emerald-600"
+          />
+          <StatCard
+            emoji="🎫"
+            label="Tickets Sold"
+            value={stats?.totalTicketsSold || 12847}
+            color="bg-gradient-to-br from-blue-500 to-cyan-600"
+          />
+        </div>
 
-              {/* Number */}
-              <div className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-2">
-                {stat.number}
-              </div>
-
-              {/* Label */}
-              <div className="text-lg sm:text-xl font-semibold text-purple-400 mb-2">
-                {stat.label}
-              </div>
-
-              {/* Description */}
-              {stat.description && (
-                <div className="text-gray-400 text-sm max-w-xs mx-auto">
-                  {stat.description}
-                </div>
-              )}
+        {/* Trust Indicators */}
+        <div className="mt-16 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 items-center opacity-60">
+            <div className="flex items-center justify-center">
+              <div className="text-white font-semibold">🔒 Secure Payments</div>
             </div>
-          ))}
+            <div className="flex items-center justify-center">
+              <div className="text-white font-semibold">⚡ Instant Delivery</div>
+            </div>
+            <div className="flex items-center justify-center">
+              <div className="text-white font-semibold">🎯 Best Prices</div>
+            </div>
+            <div className="flex items-center justify-center">
+              <div className="text-white font-semibold">🔄 Easy Refunds</div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
   );
-}
-
-// Pre-built stats sections
-export function DefaultStatsSection() {
-  const stats = [
-    {
-      number: '2M+',
-      label: 'Tickets Sold',
-      icon: (
-        <svg className="w-6 h-6 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-        </svg>
-      ),
-    },
-    {
-      number: '500K+',
-      label: 'Happy Customers',
-      icon: (
-        <svg className="w-6 h-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-        </svg>
-      ),
-    },
-    {
-      number: '10K+',
-      label: 'Events Listed',
-      icon: (
-        <svg className="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 4v10a2 2 0 002 2h4a2 2 0 002-2V11m-8 0H4a2 2 0 00-2 2v4a2 2 0 002 2h16a2 2 0 002-2v-4a2 2 0 00-2-2h-4" />
-        </svg>
-      ),
-    },
-    {
-      number: '99.9%',
-      label: 'Uptime',
-      icon: (
-        <svg className="w-6 h-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-        </svg>
-      ),
-    },
-  ];
-
-  return <StatsSection stats={stats} title="Trusted by Millions" />;
 }

@@ -130,6 +130,8 @@ export default function Sidebar() {
     return `/category/${category.id}`;
   };
 
+  // No separate featured fetch - categories already prioritized by backend
+
   // Check if a category is in the current active path
   const isInActivePath = (categoryId: number): boolean => {
     const currentCategoryId = getCurrentCategoryId();
@@ -294,6 +296,7 @@ export default function Sidebar() {
               </div>
             </div>
 
+            {/* Categories (already ordered with featured first by backend) */}
             {categories.map((category) => (
               <CategoryTreeItem
                 key={category.id}

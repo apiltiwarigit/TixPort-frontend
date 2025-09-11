@@ -7,6 +7,7 @@ interface Category {
   id: number;
   name: string;
   slug: string;
+  is_featured?: boolean;
   parent?: {
     id: number;
     name: string;
@@ -71,6 +72,7 @@ export function CategoryProvider({ children }: CategoryProviderProps) {
         id: Number(cat.id),
         name: cat.name as string,
         slug: (cat.slug as string) || (cat.name as string).toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+        is_featured: Boolean((cat as Record<string, unknown>).is_featured),
         parent: cat.parent ? {
           id: Number((cat.parent as Record<string, unknown>).id),
           name: (cat.parent as Record<string, unknown>).name as string,
@@ -83,6 +85,12 @@ export function CategoryProvider({ children }: CategoryProviderProps) {
 
     // Second pass: build tree structure
     categoryMap.forEach((category) => {
+      // Featured categories should appear at the top level regardless of parent
+      if (category.is_featured) {
+        rootCategories.push(category);
+        return;
+      }
+
       if (category.parent) {
         const parentCategory = categoryMap.get(category.parent.id);
         if (parentCategory) {
@@ -97,17 +105,18 @@ export function CategoryProvider({ children }: CategoryProviderProps) {
       }
     });
 
-    // Sort categories alphabetically
-    const sortCategories = (cats: Category[]) => {
-      cats.sort((a, b) => a.name.localeCompare(b.name));
+    // Preserve root order from backend (featured already first),
+    // but sort children alphabetically for readability
+    const sortChildren = (cats: Category[]) => {
       cats.forEach(cat => {
         if (cat.children && cat.children.length > 0) {
-          sortCategories(cat.children);
+          cat.children.sort((a, b) => a.name.localeCompare(b.name));
+          sortChildren(cat.children);
         }
       });
     };
 
-    sortCategories(rootCategories);
+    sortChildren(rootCategories);
     return rootCategories;
   };
 

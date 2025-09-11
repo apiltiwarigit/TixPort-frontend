@@ -13,7 +13,9 @@ import {
   TagIcon,
   Bars3Icon,
   XMarkIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  ChartBarIcon,
+  StarIcon
 } from '@heroicons/react/24/outline';
 
 interface AdminLayoutProps {
@@ -51,7 +53,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { name: 'Users', href: '/admin/users', icon: UsersIcon },
     { name: 'Hero Sections', href: '/admin/hero-sections', icon: PhotoIcon },
     { name: 'Categories', href: '/admin/categories', icon: TagIcon },
-    { name: 'Featured Categories', href: '/admin/featured-categories', icon: TagIcon },
+    { name: 'Featured', href: '/admin/featured-categories', icon: StarIcon },
+    { name: 'Statistics', href: '/admin/statistics', icon: ChartBarIcon },
     { name: 'Settings', href: '/admin/settings', icon: CogIcon },
   ];
 

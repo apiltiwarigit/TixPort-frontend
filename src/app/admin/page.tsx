@@ -17,6 +17,10 @@ interface DashboardStats {
   heroSections?: number;
   categories?: number;
   lastSync?: string;
+  // New statistics
+  totalLikes?: number;
+  totalMoneySaved?: number;
+  totalTicketsSold?: number;
 }
 
 export default function AdminDashboard() {
@@ -99,6 +103,13 @@ export default function AdminDashboard() {
       href: '/admin/settings',
       icon: CogIcon,
       color: 'bg-gray-500'
+    },
+    {
+      name: 'Statistics',
+      description: 'Manage public statistics',
+      href: '/admin/statistics',
+      icon: ChartBarIcon,
+      color: 'bg-indigo-500'
     }
   ];
 
@@ -177,6 +188,62 @@ export default function AdminDashboard() {
               <p className="text-sm font-bold text-white">
                 {loading ? '...' : stats.lastSync || 'Never'}
               </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Public Statistics */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-white">Public Statistics</h2>
+          <a 
+            href="/admin/statistics" 
+            className="text-purple-400 hover:text-purple-300 text-sm font-medium"
+          >
+            Manage →
+          </a>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-gradient-to-br from-pink-500/10 to-pink-600/10 border border-pink-500/20 rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-pink-300">Total Likes</p>
+                <p className="text-3xl font-bold text-white mt-1">
+                  {loading ? '...' : (stats.totalLikes ? (stats.totalLikes >= 1000 ? `${(stats.totalLikes/1000).toFixed(1)}K` : stats.totalLikes) : '0')}
+                </p>
+              </div>
+              <div className="p-3 bg-pink-500/20 rounded-lg">
+                ❤️
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 border border-green-500/20 rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-green-300">Money Saved</p>
+                <p className="text-3xl font-bold text-white mt-1">
+                  {loading ? '...' : `$${stats.totalMoneySaved ? (stats.totalMoneySaved >= 1000 ? `${(stats.totalMoneySaved/1000).toFixed(1)}K` : stats.totalMoneySaved) : '0'}`}
+                </p>
+              </div>
+              <div className="p-3 bg-green-500/20 rounded-lg">
+                💰
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-500/20 rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-blue-300">Tickets Sold</p>
+                <p className="text-3xl font-bold text-white mt-1">
+                  {loading ? '...' : (stats.totalTicketsSold ? (stats.totalTicketsSold >= 1000 ? `${(stats.totalTicketsSold/1000).toFixed(1)}K` : stats.totalTicketsSold) : '0')}
+                </p>
+              </div>
+              <div className="p-3 bg-blue-500/20 rounded-lg">
+                🎫
+              </div>
             </div>
           </div>
         </div>
