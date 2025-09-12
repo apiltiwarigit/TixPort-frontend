@@ -17,8 +17,8 @@ import {
 } from '@heroicons/react/24/outline'
 import { Button } from '@/components/ui/Button'
 import Header from '@/components/Header'
-import StripeProvider from '@/components/StripeProvider'
-import CheckoutForm from '@/components/CheckoutForm'
+import BraintreeProvider from '@/components/BraintreeProvider'
+import CheckoutFormV9 from '@/components/CheckoutFormV9'
 import Link from 'next/link'
 import { buildSeatmapTicketGroups, normalizeSectionName, type TevoListing } from '@/lib/seatmapUtils'
 
@@ -601,8 +601,8 @@ export default function EventBuyPage() {
                 </div>
               )}
               
-              <StripeProvider>
-                <CheckoutForm
+              <BraintreeProvider>
+                <CheckoutFormV9
                   ticketData={getCurrentTicketData()!}
                   eventData={{
                     id: eventId,
@@ -617,7 +617,7 @@ export default function EventBuyPage() {
                   onSuccess={(orderData: unknown) => handleCheckoutSuccess(orderData as Record<string, unknown>)}
                   onError={handleCheckoutError}
                 />
-              </StripeProvider>
+              </BraintreeProvider>
             </div>
           </div>
         )}

@@ -12,11 +12,11 @@
   "dependencies": {
     "@headlessui/react": "^1.7.17",
     "@heroicons/react": "^2.0.18",
-    "@stripe/react-stripe-js": "^4.0.0",
-    "@stripe/stripe-js": "^7.9.0",
     "@ticketevolution/seatmaps-client": "^3.5.1",
     "autoprefixer": "^10.4.16",
     "axios": "^1.6.0",
+    "braintree-web": "^3.129.0",
+    "braintree-web-drop-in": "^1.45.1",
     "clsx": "^2.0.0",
     "date-fns": "^2.30.0",
     "lodash.pick": "^4.4.0",

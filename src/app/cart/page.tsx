@@ -9,8 +9,8 @@ import { Button } from '@/components/ui';
 import { Input } from '@/components/ui';
 import { EmptyCart } from '@/components/ui';
 import { useCart } from '@/contexts/CartContext';
-import StripeProvider from '@/components/StripeProvider';
-import CartCheckoutForm from '@/components/CartCheckoutForm';
+import BraintreeProvider from '@/components/BraintreeProvider';
+import CartCheckoutFormV9 from '@/components/CartCheckoutFormV9';
 import {
   ShoppingCartIcon,
   TrashIcon,
@@ -175,13 +175,13 @@ export default function CartPage() {
               </div>
             )}
             
-            <StripeProvider>
-              <CartCheckoutForm
+            <BraintreeProvider>
+              <CartCheckoutFormV9
                 cartData={checkoutData}
                 onSuccess={handleCheckoutSuccess}
                 onError={handleCheckoutError}
               />
-            </StripeProvider>
+            </BraintreeProvider>
           </div>
         </div>
       </PageContainer>
